@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "metro-mcp": {
+      "command": "npx",
+      "args": [
+        "mcp-remote", 
+        "https://metro-mcp.noyd.app/sse"
+      ],
+      "env": {}
+    }
+  }
+}

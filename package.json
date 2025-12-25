@@ -1,0 +1,31 @@
+{
+  "name": "metro-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Washington DC Metro API integration on Cloudflare Workers",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc && wrangler deploy --dry-run",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.0.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8",
+    "wrangler": "^4.28.1"
+  },
+  "keywords": [
+    "mcp",
+    "metro",
+    "wmata",
+    "dc",
+    "washington",
+    "cloudflare-workers"
+  ],
+  "author": "Nathaniel Noyd",
+  "license": "MIT"
+}
