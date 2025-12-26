@@ -87,21 +87,63 @@ export class Router {
     if (request.method === 'GET') {
       return new Response(JSON.stringify({
         name: 'Metro MCP',
-        version: '1.0.0',
-        description: 'MCP server for Washington DC Metro (WMATA) APIs',
-        protocolVersion: '2024-11-05',
+        version: '2.0.0',
+        description: 'MCP server for US transit systems (DC Metro, NYC Subway)',
+        protocolVersion: '2025-03-26',
+        status: 'operational',
+        timestamp: new Date().toISOString(),
+        lastUpdated: '2025-12-26',
+        author: 'Anurag Agarwal',
+        links: {
+          github: 'https://github.com/Aarekaz/metro-mcp',
+          mcp: 'https://metro-mcp.aarekaz.workers.dev/'
+        },
         capabilities: {
           tools: {
             listChanged: true
           }
         },
+        cities: [
+          {
+            code: 'dc',
+            name: 'Washington DC Metro',
+            system: 'WMATA',
+            stations: 98,
+            lines: 6,
+            features: ['real-time', 'alerts', 'elevators', 'search', 'line-info']
+          },
+          {
+            code: 'nyc',
+            name: 'New York City Subway',
+            system: 'MTA',
+            stations: 491,
+            lines: 26,
+            features: ['real-time', 'alerts', 'search', 'line-info']
+          }
+        ],
+        stats: {
+          totalStations: 589,
+          totalLines: 32,
+          citiesSupported: 2,
+          toolsAvailable: 6
+        },
         endpoints: {
           mcp: '/sse',
-          legacy: '/'
+          oauth: {
+            authorize: '/authorize',
+            token: '/token',
+            register: '/register'
+          },
+          discovery: '/.well-known/oauth-authorization-server'
+        },
+        authentication: {
+          type: 'OAuth 2.1',
+          pkce: true,
+          provider: 'GitHub'
         },
         tools: [
           'get_station_predictions',
-          'search_stations', 
+          'search_stations',
           'get_stations_by_line',
           'get_incidents',
           'get_elevator_incidents',
