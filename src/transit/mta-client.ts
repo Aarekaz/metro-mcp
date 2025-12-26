@@ -174,49 +174,66 @@ export class MTAClient extends TransitAPIClient {
 
   /**
    * Get current service alerts and incidents
+   * Uses dedicated subway-alerts feed for better performance (1 call vs 8)
    */
   async getIncidents(): Promise<TransitIncident[]> {
     const incidents: TransitIncident[] = [];
 
-    // Service alerts are in the GTFS-realtime feeds
-    const feedsToCheck = Object.keys(MTA_FEEDS) as (keyof typeof MTA_FEEDS)[];
+    try {
+      // Fetch from dedicated alerts feed (JSON format, faster than protobuf)
+      const response = await fetch(
+        'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/camsys%2Fsubway-alerts.json'
+      );
 
-    for (const feedKey of feedsToCheck) {
-      try {
-        const feed = await this.fetchFeed(feedKey);
+      if (!response.ok) {
+        throw new Error(`MTA alerts fetch failed: ${response.status}`);
+      }
 
-        for (const entity of feed.entity) {
-          if (!entity.alert) continue;
+      const data = await response.json() as any;
 
-          const alert = entity.alert;
+      for (const entity of data.entity || []) {
+        if (!entity.alert) continue;
 
-          // Extract affected lines
-          const linesAffected: string[] = [];
-          if (alert.informedEntity) {
-            for (const informed of alert.informedEntity) {
-              if (informed.routeId) {
-                linesAffected.push(informed.routeId);
-              }
+        const alert = entity.alert;
+
+        // Extract affected lines from informed_entity
+        const linesAffected: string[] = [];
+        if (alert.informed_entity) {
+          for (const informed of alert.informed_entity) {
+            if (informed.route_id) {
+              linesAffected.push(informed.route_id);
             }
           }
-
-          // Get description
-          const description = alert.headerText?.translation?.[0]?.text || 'Service alert';
-
-          incidents.push({
-            city: 'nyc',
-            incidentId: entity.id || `${feedKey}-${Date.now()}`,
-            description,
-            linesAffected: [...new Set(linesAffected)], // Remove duplicates
-            severity: 'Unknown', // MTA doesn't provide severity in standard format
-            incidentType: 'Alert',
-            timestamp: new Date().toISOString(),
-          });
         }
-      } catch (error) {
-        // Log error but continue with other feeds to provide partial results
-        // In production, this would be sent to Cloudflare's logging/observability
+
+        // Get plain text description (prefer over HTML)
+        const description =
+          alert.header_text?.translation?.find((t: any) => t.language === 'en')?.text ||
+          alert.header_text?.translation?.[0]?.text ||
+          'Service alert';
+
+        // Get alert type from mercury extensions
+        const alertType = alert['transit_realtime.mercury_alert']?.alert_type || 'Alert';
+
+        // Get timestamp from mercury extensions
+        const updatedAt = alert['transit_realtime.mercury_alert']?.updated_at;
+        const timestamp = updatedAt
+          ? new Date(updatedAt * 1000).toISOString()
+          : new Date().toISOString();
+
+        incidents.push({
+          city: 'nyc',
+          incidentId: entity.id,
+          description,
+          linesAffected: [...new Set(linesAffected)], // Remove duplicates
+          severity: alertType, // Use alert_type as severity (Delays, Service Change, etc.)
+          incidentType: alertType,
+          timestamp,
+        });
       }
+    } catch (error) {
+      // If alerts feed fails, return empty array rather than breaking the whole request
+      // In production, this would be sent to Cloudflare's logging/observability
     }
 
     return incidents;
