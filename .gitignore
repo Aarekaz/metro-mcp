@@ -1,3 +1,4 @@
+# Environment variables
 .env
 .env.local
 .env.development.local
@@ -6,14 +7,15 @@
 .env.development
 .env.test
 .env.production
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
+# Wrangler local secrets
+.dev.vars
+
+# Dependencies
 node_modules
 
-.claude
-wrangler.toml
-
+# Build output
 dist
+
+# IDE
+.claude

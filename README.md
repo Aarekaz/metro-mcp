@@ -100,30 +100,44 @@ openssl rand -hex 32
 - Set **Authorization callback URL**: `https://metro-mcp.your-subdomain.workers.dev/callback`
 - Save the **Client ID** and **Client Secret**
 
-**4. Configure environment variables:**
-
-Create `wrangler.toml` from the example:
-
-```toml
-name = "metro-mcp"
-main = "src/index.ts"
-compatibility_date = "2024-12-18"
-workers_dev = true
-
-[vars]
-WMATA_API_KEY = "your-wmata-api-key"
-GITHUB_CLIENT_ID = "your-github-client-id"
-GITHUB_CLIENT_SECRET = "your-github-client-secret"
-JWT_SECRET = "your-jwt-secret-from-step-2"
-OAUTH_REDIRECT_URI = "https://metro-mcp.your-subdomain.workers.dev/callback"
-```
-
-**5. Build and deploy:**
+**4. Create KV Namespaces:**
 
 ```bash
-# Build TypeScript
-bunx tsc
+# Create production KV namespace
+bunx wrangler kv namespace create "OAUTH_CLIENTS"
 
+# Create preview KV namespace
+bunx wrangler kv namespace create "OAUTH_CLIENTS" --preview
+```
+
+Copy the IDs from the output and update `wrangler.toml`.
+
+**5. Configure environment:**
+
+Copy the example files and fill in your values:
+
+```bash
+# Copy wrangler config
+cp wrangler.toml.example wrangler.toml
+# Update the KV namespace IDs in wrangler.toml
+
+# Copy local development secrets
+cp .dev.vars.example .dev.vars
+# Add your actual secrets to .dev.vars
+```
+
+**6. Set production secrets:**
+
+```bash
+# These are encrypted and stored securely by Cloudflare
+bunx wrangler secret put WMATA_API_KEY
+bunx wrangler secret put GITHUB_CLIENT_SECRET
+bunx wrangler secret put JWT_SECRET
+```
+
+**7. Deploy:**
+
+```bash
 # Deploy to Cloudflare Workers
 bunx wrangler deploy
 ```

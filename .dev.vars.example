@@ -1,0 +1,12 @@
+# Local development secrets
+# Copy this file to .dev.vars and fill in your actual values
+# .dev.vars is gitignored and safe for local development
+
+# Get your WMATA API key from: https://developer.wmata.com/
+WMATA_API_KEY=your-wmata-api-key-here
+
+# GitHub OAuth App credentials (from https://github.com/settings/developers)
+GITHUB_CLIENT_SECRET=your-github-oauth-app-client-secret
+
+# Generate with: openssl rand -hex 32
+JWT_SECRET=your-jwt-secret-here

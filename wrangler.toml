@@ -1,0 +1,33 @@
+name = "metro-mcp"
+main = "src/index.ts"
+compatibility_date = "2025-12-25"
+workers_dev = true
+
+# Preserve environment variables set in dashboard on deploy
+keep_vars = true
+
+# Minify JavaScript for better performance
+minify = true
+
+# Upload source maps for better error debugging
+upload_source_maps = true
+
+# KV Namespaces for OAuth client registration
+[[kv_namespaces]]
+binding = "OAUTH_CLIENTS"
+id = "44f6224b68354c24bf071e2b53b13dbb"
+preview_id = "7d10b069531a459cb56ed59220ede55b"
+
+# Non-secret environment variables
+[vars]
+GITHUB_CLIENT_ID = "Ov23liGFwmOZeECJ6yeN"  # OAuth client ID (public, not a secret)
+OAUTH_REDIRECT_URI = "https://metro-mcp.aarekaz.workers.dev/callback"
+
+# Observability and logging configuration
+[observability]
+enabled = true  # Enable for production monitoring
+
+[observability.logs]
+enabled = true  # Enable logging
+head_sampling_rate = 0.1  # Sample 10% of requests (adjust as needed)
+invocation_logs = true
