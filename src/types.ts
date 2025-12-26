@@ -4,6 +4,7 @@ export interface Env {
   GITHUB_CLIENT_SECRET?: string;
   JWT_SECRET?: string;
   OAUTH_REDIRECT_URI?: string;
+  OAUTH_CLIENTS: KVNamespace;
 }
 
 export interface User {

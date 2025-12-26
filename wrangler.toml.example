@@ -1,22 +1,22 @@
 name = "metro-mcp"
 main = "src/index.ts"
 compatibility_date = "2024-12-18"
-workers_dev = false
+workers_dev = true
 
-# Production environment configuration
-[env.production]
-name = "metro-mcp"
+# KV Namespaces for OAuth client registration
+# Create these with: bunx wrangler kv namespace create "OAUTH_CLIENTS"
+# Create preview with: bunx wrangler kv namespace create "OAUTH_CLIENTS" --preview
+[[kv_namespaces]]
+binding = "OAUTH_CLIENTS"
+id = "your-kv-namespace-id-here"
+preview_id = "your-preview-kv-namespace-id-here"
 
 # Environment variables
- [vars]
+[vars]
 # Replace these with your actual values:
 WMATA_API_KEY = "your-wmata-api-key-here"
 GITHUB_CLIENT_ID = "your-github-oauth-app-client-id"
 GITHUB_CLIENT_SECRET = "your-github-oauth-app-client-secret"
 JWT_SECRET = "generate-with-openssl-rand-hex-32"
-OAUTH_REDIRECT_URI = "https://your-domain.com/callback"
-
-# Production settings
-[build]
-command = "npx tsc"
+OAUTH_REDIRECT_URI = "https://your-subdomain.workers.dev/callback"
 

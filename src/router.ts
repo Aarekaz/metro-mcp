@@ -40,19 +40,40 @@ export class Router {
       }));
     }
 
+    // OAuth 2.0 Authorization Server Metadata (RFC 8414) - for MCP OAuth discovery
+    if (url.pathname === '/.well-known/oauth-authorization-server') {
+      const baseUrl = `${url.protocol}//${url.host}`;
+      return new Response(JSON.stringify({
+        issuer: baseUrl,
+        authorization_endpoint: `${baseUrl}/authorize`,
+        token_endpoint: `${baseUrl}/token`,
+        registration_endpoint: `${baseUrl}/register`,
+        grant_types_supported: ['authorization_code', 'refresh_token'],
+        response_types_supported: ['code'],
+        code_challenge_methods_supported: ['S256'],
+        token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic'],
+        scopes_supported: ['profile']
+      }, null, 2), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+
     // OAuth endpoints
     if (url.pathname === '/authorize') {
       return this.oauthHandler.handleAuthorize(request, env);
     }
-    
+
     if (url.pathname === '/token') {
       return this.oauthHandler.handleToken(request, env);
     }
-    
+
     if (url.pathname === '/register') {
       return this.oauthHandler.handleRegister(request, env);
     }
-    
+
     if (url.pathname === '/callback') {
       return this.oauthHandler.handleCallback(request, env);
     }
@@ -107,6 +128,7 @@ export class Router {
     // Check authentication for MCP endpoints
     const authResult = await this.authenticateRequest(request, env);
     if (!authResult.authenticated) {
+      const baseUrl = `${new URL(request.url).protocol}//${new URL(request.url).host}`;
       return this.oauthHandler.addSecurityHeaders(new Response(
         JSON.stringify({
           jsonrpc: '2.0',
@@ -116,10 +138,13 @@ export class Router {
             message: 'Unauthorized',
             data: authResult.error || 'Authentication required'
           }
-        }), 
-        { 
+        }),
+        {
           status: 401,
-          headers: { 'Content-Type': 'application/json' }
+          headers: {
+            'Content-Type': 'application/json',
+            'WWW-Authenticate': `Bearer realm="Metro MCP", authorization_uri="${baseUrl}/authorize", error="invalid_token"`
+          }
         }
       ));
     }
@@ -127,13 +152,19 @@ export class Router {
     if (request.method === 'POST') {
       try {
         const body = await request.json() as MCPRequest;
-        
+
         if (!body.jsonrpc || body.jsonrpc !== '2.0') {
           return this.createMCPErrorResponse(body.id || 0, -32600, 'Invalid Request: Missing or invalid jsonrpc field');
         }
 
         const response = await this.mcpHandler.processMCPMethod(body, env);
-        
+
+        // Per JSON-RPC 2.0 spec, notifications (methods starting with 'notifications/')
+        // should not receive responses. Return 204 No Content for notifications.
+        if (body.method?.startsWith('notifications/')) {
+          return this.oauthHandler.addSecurityHeaders(new Response(null, { status: 204 }));
+        }
+
         const jsonResponse = new Response(JSON.stringify(response), {
           headers: {
             'Content-Type': 'application/json'

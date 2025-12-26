@@ -25,17 +25,89 @@ export class OAuthHandler {
     });
   }
 
-  async handleAuthorize(_request: Request, env: Env): Promise<Response> {
+  async handleAuthorize(request: Request, env: Env): Promise<Response> {
     try {
+      const url = new URL(request.url);
+      const clientId = url.searchParams.get('client_id');
+      const redirectUri = url.searchParams.get('redirect_uri');
+      const responseType = url.searchParams.get('response_type');
+      const codeChallenge = url.searchParams.get('code_challenge');
+      const codeChallengeMethod = url.searchParams.get('code_challenge_method');
+      const state = url.searchParams.get('state') || '';
+
+      // Validate required parameters
+      if (!clientId) {
+        return new Response(JSON.stringify({
+          error: 'invalid_request',
+          error_description: 'Missing client_id parameter'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (responseType !== 'code') {
+        return new Response(JSON.stringify({
+          error: 'unsupported_response_type',
+          error_description: 'Only response_type=code is supported'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // PKCE is required for MCP OAuth 2.1
+      if (!codeChallenge || codeChallengeMethod !== 'S256') {
+        return new Response(JSON.stringify({
+          error: 'invalid_request',
+          error_description: 'PKCE with S256 is required'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Verify client exists in KV
+      const clientData = await env.OAUTH_CLIENTS.get(`client:${clientId}`);
+      if (!clientData) {
+        return new Response(JSON.stringify({
+          error: 'invalid_client',
+          error_description: 'Client not found'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const client = JSON.parse(clientData);
+
+      // Validate redirect URI if provided
+      if (redirectUri && !client.redirect_uris.includes(redirectUri)) {
+        return new Response(JSON.stringify({
+          error: 'invalid_request',
+          error_description: 'Invalid redirect_uri'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       const authManager = new AuthManager(env);
-      
-      // Generate state for CSRF protection
-      const state = authManager.generateState();
-      const authUrl = authManager.generateAuthURL(state);
-      
-      // In production, you'd store the state in a secure way (KV, session, etc.)
-      // For now, we'll include it in the redirect
-      
+
+      // Generate OAuth state that includes MCP client info and PKCE challenge
+      const oauthState = authManager.generateState();
+
+      // Store PKCE challenge and client info temporarily (5 minutes)
+      await env.OAUTH_CLIENTS.put(`pkce:${oauthState}`, JSON.stringify({
+        clientId,
+        redirectUri: redirectUri || client.redirect_uris[0],
+        codeChallenge,
+        codeChallengeMethod,
+        mcpState: state
+      }), { expirationTtl: 300 });
+
+      const authUrl = authManager.generateAuthURL(oauthState);
+
       return Response.redirect(authUrl, 302);
     } catch (error) {
       return new Response(
@@ -49,13 +121,31 @@ export class OAuthHandler {
     if (request.method !== 'POST') {
       return new Response('Method not allowed', { status: 405 });
     }
-    
+
     try {
       const authManager = new AuthManager(env);
-      const body = await request.formData();
-      const grantType = body.get('grant_type');
-      const code = body.get('code');
-      
+      const contentType = request.headers.get('content-type') || '';
+
+      let grantType: string | null = null;
+      let code: string | null = null;
+      let codeVerifier: string | null = null;
+      let clientId: string | null = null;
+
+      // Support both form-urlencoded and JSON
+      if (contentType.includes('application/x-www-form-urlencoded')) {
+        const body = await request.formData();
+        grantType = body.get('grant_type') as string;
+        code = body.get('code') as string;
+        codeVerifier = body.get('code_verifier') as string;
+        clientId = body.get('client_id') as string;
+      } else if (contentType.includes('application/json')) {
+        const body = await request.json() as any;
+        grantType = body.grant_type;
+        code = body.code;
+        codeVerifier = body.code_verifier;
+        clientId = body.client_id;
+      }
+
       if (grantType !== 'authorization_code' || !code) {
         return new Response(JSON.stringify({
           error: 'invalid_grant',
@@ -65,39 +155,79 @@ export class OAuthHandler {
           headers: { 'Content-Type': 'application/json' }
         });
       }
-      
-      // Exchange code for GitHub access token
-      const githubAccessToken = await authManager.exchangeCodeForToken(code.toString());
-      
-      // Get user info from GitHub
-      const user = await authManager.getUserInfo(githubAccessToken);
-      
+
+      if (!codeVerifier) {
+        return new Response(JSON.stringify({
+          error: 'invalid_request',
+          error_description: 'code_verifier is required for PKCE'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Retrieve authorization code data
+      const authCodeDataStr = await env.OAUTH_CLIENTS.get(`authcode:${code}`);
+      if (!authCodeDataStr) {
+        return new Response(JSON.stringify({
+          error: 'invalid_grant',
+          error_description: 'Invalid or expired authorization code'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const authCodeData = JSON.parse(authCodeDataStr);
+
+      // Verify client ID matches
+      if (clientId && authCodeData.clientId !== clientId) {
+        return new Response(JSON.stringify({
+          error: 'invalid_grant',
+          error_description: 'Client ID mismatch'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Verify PKCE code_verifier against code_challenge
+      const verified = await authManager.verifyPKCE(codeVerifier, authCodeData.codeChallenge);
+      if (!verified) {
+        return new Response(JSON.stringify({
+          error: 'invalid_grant',
+          error_description: 'Invalid code_verifier'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       // Create session (expires in 90 days)
       const expiresAt = Math.floor(Date.now() / 1000) + (90 * 24 * 60 * 60);
       const session: AuthSession = {
-        userId: user.id,
-        userLogin: user.login,
+        userId: authCodeData.userId,
+        userLogin: authCodeData.userLogin,
         expiresAt
       };
-      
+
       // Generate JWT token
       const jwtToken = await authManager.generateJWT(session);
-      
+
+      // Delete used authorization code
+      await env.OAUTH_CLIENTS.delete(`authcode:${code}`);
+
       return this.addSecurityHeaders(new Response(JSON.stringify({
         access_token: jwtToken,
         token_type: 'Bearer',
-        expires_in: 90 * 24 * 60 * 60,
-        user: {
-          login: user.login,
-          name: user.name
-        }
+        expires_in: 90 * 24 * 60 * 60
       }), {
         headers: { 'Content-Type': 'application/json' }
       }));
     } catch (error) {
       const errorMessage = error instanceof AuthError ? error.message : 'Token exchange failed';
       const statusCode = error instanceof AuthError ? error.status : 400;
-      
+
       return this.addSecurityHeaders(new Response(JSON.stringify({
         error: 'invalid_request',
         error_description: errorMessage
@@ -108,45 +238,82 @@ export class OAuthHandler {
     }
   }
 
-  async handleRegister(request: Request, _env: Env): Promise<Response> {
+  async handleRegister(request: Request, env: Env): Promise<Response> {
     if (request.method !== 'POST') {
       return new Response('Method not allowed', { status: 405 });
     }
-    
+
     try {
       const body = await request.json() as { client_name?: string; redirect_uris?: string[] };
       const { client_name, redirect_uris } = body;
-      
-      if (!client_name || !redirect_uris) {
-        return new Response('Missing required fields', { status: 400 });
+
+      if (!client_name || !redirect_uris || !Array.isArray(redirect_uris) || redirect_uris.length === 0) {
+        return new Response(JSON.stringify({
+          error: 'invalid_request',
+          error_description: 'client_name and redirect_uris array are required'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
-      
-      // For demo purposes, generate a dummy client
-      const clientId = 'wmata_client_' + Date.now();
-      const clientSecret = 'wmata_secret_' + Math.random().toString(36);
-      
-      return new Response(JSON.stringify({
+
+      // Validate redirect URIs
+      for (const uri of redirect_uris) {
+        try {
+          new URL(uri);
+        } catch {
+          return new Response(JSON.stringify({
+            error: 'invalid_request',
+            error_description: `Invalid redirect URI: ${uri}`
+          }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      const authManager = new AuthManager(env);
+
+      // Generate secure client ID and secret
+      const clientId = 'mcp_' + authManager.generateState().substring(0, 32);
+      const clientSecret = authManager.generateState();
+
+      // Store client in KV (no expiration for persistent client registration)
+      await env.OAUTH_CLIENTS.put(`client:${clientId}`, JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        client_name,
+        redirect_uris,
+        created_at: new Date().toISOString()
+      }));
+
+      return this.addSecurityHeaders(new Response(JSON.stringify({
         client_id: clientId,
         client_secret: clientSecret,
         client_name,
         redirect_uris
       }), {
         headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Content-Type': 'application/json'
         }
-      });
+      }));
     } catch (error) {
-      return new Response('Invalid request', { status: 400 });
+      return new Response(JSON.stringify({
+        error: 'invalid_request',
+        error_description: 'Invalid request body'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   }
 
   async handleCallback(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const code = url.searchParams.get('code');
+    const githubCode = url.searchParams.get('code');
     const error = url.searchParams.get('error');
-    // Note: state parameter available for CSRF protection if needed
-    
+    const state = url.searchParams.get('state');
+
     if (error) {
       return this.addSecurityHeaders(new Response(`
         <html>
@@ -162,14 +329,14 @@ export class OAuthHandler {
         headers: { 'Content-Type': 'text/html' }
       }));
     }
-    
-    if (!code) {
+
+    if (!githubCode || !state) {
       return this.addSecurityHeaders(new Response(`
         <html>
           <head><title>Metro MCP - OAuth Error</title></head>
           <body>
             <h1>Authorization Failed</h1>
-            <p>No authorization code received.</p>
+            <p>No authorization code or state received.</p>
           </body>
         </html>
       `, {
@@ -177,40 +344,59 @@ export class OAuthHandler {
         headers: { 'Content-Type': 'text/html' }
       }));
     }
-    
+
     try {
       const authManager = new AuthManager(env);
-      
-      // Exchange code for token (this creates a complete authentication flow)
-      const githubAccessToken = await authManager.exchangeCodeForToken(code);
+
+      // Retrieve PKCE data from KV using state
+      const pkceDataStr = await env.OAUTH_CLIENTS.get(`pkce:${state}`);
+      if (!pkceDataStr) {
+        return this.addSecurityHeaders(new Response(`
+          <html>
+            <head><title>Metro MCP - OAuth Error</title></head>
+            <body>
+              <h1>Authorization Failed</h1>
+              <p>Invalid or expired state parameter.</p>
+            </body>
+          </html>
+        `, {
+          status: 400,
+          headers: { 'Content-Type': 'text/html' }
+        }));
+      }
+
+      const pkceData = JSON.parse(pkceDataStr);
+
+      // Exchange GitHub code for user info
+      const githubAccessToken = await authManager.exchangeCodeForToken(githubCode);
       const user = await authManager.getUserInfo(githubAccessToken);
-      
-      // Create session
-      const expiresAt = Math.floor(Date.now() / 1000) + (90 * 24 * 60 * 60);
-      const session: AuthSession = {
+
+      // Generate MCP authorization code
+      const mcpAuthCode = authManager.generateState();
+
+      // Store authorization code with user info and PKCE challenge (valid for 10 minutes)
+      await env.OAUTH_CLIENTS.put(`authcode:${mcpAuthCode}`, JSON.stringify({
         userId: user.id,
         userLogin: user.login,
-        expiresAt
-      };
-      
-      const jwtToken = await authManager.generateJWT(session);
-      
-      return this.addSecurityHeaders(new Response(`
-        <html>
-          <head><title>Metro MCP - OAuth Success</title></head>
-          <body>
-            <h1>Authorization Successful!</h1>
-            <p>Welcome, <strong>${user.name || user.login}</strong>!</p>
-            <p>Your access token:</p>
-            <textarea rows="4" cols="80" readonly>${jwtToken}</textarea>
-            <p>Copy this token and use it in your MCP client with the Authorization header:</p>
-            <code>Authorization: Bearer ${jwtToken}</code>
-            <p>Token expires in 90 days.</p>
-          </body>
-        </html>
-      `, {
-        headers: { 'Content-Type': 'text/html' }
-      }));
+        userName: user.name,
+        userEmail: user.email,
+        clientId: pkceData.clientId,
+        redirectUri: pkceData.redirectUri,
+        codeChallenge: pkceData.codeChallenge,
+        createdAt: Date.now()
+      }), { expirationTtl: 600 });
+
+      // Clean up PKCE state
+      await env.OAUTH_CLIENTS.delete(`pkce:${state}`);
+
+      // Redirect back to MCP client with authorization code
+      const redirectUrl = new URL(pkceData.redirectUri);
+      redirectUrl.searchParams.set('code', mcpAuthCode);
+      if (pkceData.mcpState) {
+        redirectUrl.searchParams.set('state', pkceData.mcpState);
+      }
+
+      return Response.redirect(redirectUrl.toString(), 302);
     } catch (error) {
       return this.addSecurityHeaders(new Response(`
         <html>

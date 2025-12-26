@@ -15,7 +15,7 @@ export class MCPHandler {
             jsonrpc: '2.0',
             id,
             result: {
-              protocolVersion: '2024-11-05',
+              protocolVersion: '2025-03-26',
               capabilities: {
                 tools: {
                   listChanged: true
@@ -27,6 +27,16 @@ export class MCPHandler {
               }
             }
           };
+
+        case 'notifications/initialized':
+          // Client is signaling it has processed the initialize response
+          // Per JSON-RPC 2.0, notifications should not receive responses
+          // Return a minimal response that the router will handle appropriately
+          return {
+            jsonrpc: '2.0',
+            id: null,
+            result: null
+          } as MCPResponse;
 
         case 'tools/list':
           return {

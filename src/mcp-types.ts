@@ -7,7 +7,7 @@ export interface MCPRequest {
 
 export interface MCPResponse {
   jsonrpc: '2.0';
-  id: string | number;
+  id: string | number | null;
   result?: any;
   error?: {
     code: number;

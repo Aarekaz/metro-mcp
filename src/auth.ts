@@ -195,4 +195,27 @@ export class AuthManager {
     crypto.getRandomValues(array);
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
   }
+
+  // Verify PKCE code_verifier against code_challenge
+  async verifyPKCE(codeVerifier: string, codeChallenge: string): Promise<boolean> {
+    try {
+      // Hash the code_verifier with SHA-256
+      const encoder = new TextEncoder();
+      const data = encoder.encode(codeVerifier);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+
+      // Base64url encode the hash
+      const hashArray = new Uint8Array(hashBuffer);
+      const base64 = btoa(String.fromCharCode(...hashArray));
+      const base64url = base64
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+
+      // Compare with the code_challenge
+      return base64url === codeChallenge;
+    } catch {
+      return false;
+    }
+  }
 }
