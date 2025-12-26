@@ -1,13 +1,13 @@
 # 🚇 Metro MCP
 
-> Model Context Protocol Server for Washington DC Metro
+> Model Context Protocol Server for US Transit Systems (DC Metro & NYC Subway)
 
 [![MCP](https://img.shields.io/badge/MCP-2025--03--26-blue)](https://modelcontextprotocol.io)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)](https://workers.cloudflare.com)
 [![OAuth 2.1](https://img.shields.io/badge/OAuth-2.1%20%2B%20PKCE-green)](https://oauth.net/2.1/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-A remote Model Context Protocol (MCP) server that interfaces with the Washington, DC, Metro (WMATA) APIs. Built for seamless integration with MCP-compatible clients like Claude Desktop.
+A unified remote Model Context Protocol (MCP) server supporting multiple US transit systems. Currently supports Washington DC Metro (WMATA) and New York City Subway (MTA). Built for seamless integration with MCP-compatible clients like Claude Desktop.
 
 **Quick Links:** [Quick Start](#quick-start) • [What You Can Do](#what-you-can-do) • [Deployment](#deployment) • [Client Integration](#mcp-client-integration)
 
@@ -15,36 +15,62 @@ A remote Model Context Protocol (MCP) server that interfaces with the Washington
 
 ## What You Can Do
 
-Ask natural language questions about Washington DC Metro in Claude Desktop or any MCP-compatible client:
+Ask natural language questions about DC Metro or NYC Subway in Claude Desktop or any MCP-compatible client:
 
 ### 🚆 Real-Time Transit Information
 
-- **Train arrivals:** *"When is the next Red Line train at Dupont Circle?"*
-- **Service alerts:** *"Are there any delays on the Blue Line right now?"*
-- **Elevator/escalator outages:** *"Are all the elevators working at Union Station?"*
+**Washington DC:**
+
+- *"When is the next Red Line train at Dupont Circle?"*
+- *"Are there any delays on the Blue Line right now?"*
+- *"Are all the elevators working at Union Station?"*
+
+**New York City:**
+
+- *"When is the next 1 train at Times Square?"*
+- *"Are there delays on the A/C line?"*
+- *"What trains are arriving at Grand Central?"*
 
 ### 🗺️ Station Information & Navigation
 
-- **Search stations:** *"Where is the Smithsonian Metro station?"*
-- **Stations by line:** *"Show me all the stations on the Green Line"*
-- **Route planning:** *"How do I get from Capitol South to Bethesda?"*
+**Washington DC:**
+
+- *"Where is the Smithsonian Metro station?"*
+- *"Show me all the stations on the Green Line"*
+- *"How do I get from Capitol South to Bethesda?"*
+
+**New York City:**
+
+- *"Where is the Union Square station?"*
+- *"Show me all stations on the 4/5/6 lines"*
+- *"How do I get from Penn Station to Brooklyn?"*
 
 ### ♿ Accessibility
 
-- **Elevator status:** *"Are there any elevator outages between here and National Airport?"*
-- **Station accessibility:** *"Which stations have working elevators right now?"*
+**Washington DC (Elevator Outages):**
+
+- *"Are there any elevator outages between here and National Airport?"*
+- *"Which DC Metro stations have working elevators right now?"*
 
 ### 🔔 Service Monitoring
 
-- **Current incidents:** *"Any Metro delays right now?"*
-- **Line-specific issues:** *"Is the Orange Line running normally?"*
-- **Real-time predictions:** *"What are the next 3 trains arriving at Gallery Place?"*
+**Both Cities:**
+
+- *"Any transit delays right now in NYC?"*
+- *"Is the DC Metro Orange Line running normally?"*
+- *"Compare service quality between DC Metro and NYC Subway"*
 
 ### 📊 System Information
 
+**Washington DC:**
+
 - Complete list of all Metro stations with coordinates
 - Information about all six Metro lines (Red, Blue, Orange, Silver, Green, Yellow)
-- Historical incident tracking
+
+**New York City:**
+
+- Key NYC Subway stations with coordinates
+- Information about all subway lines (numbered and lettered)
 
 ---
 
@@ -204,18 +230,27 @@ The server implements OAuth 2.1 with PKCE for secure authentication:
 - JWT tokens with 90-day expiration
 - Rate limiting and origin validation
 
+## Supported Cities
+
+The server currently supports these transit systems:
+
+| City | System | Real-Time Data | Service Alerts | Elevator Status |
+| ---- | ------ | -------------- | -------------- | --------------- |
+| **Washington DC** | WMATA (Metro) | ✅ | ✅ | ✅ |
+| **New York City** | MTA (Subway) | ✅ | ✅ | ❌ |
+
 ## Available MCP Tools
 
-The server exposes the following tools through the MCP protocol:
+The server exposes the following tools through the MCP protocol. All tools require a `city` parameter (`dc` or `nyc`):
 
-| Tool | Description |
-| ---- | ----------- |
-| `get_next_trains` | Get real-time train predictions for a specific station |
-| `get_station_info` | Retrieve detailed information about Metro stations |
-| `get_incidents` | Check current service disruptions and advisories |
-| `get_elevator_incidents` | Find elevator and escalator outages |
-| `get_all_stations` | Get a complete list of all Metro stations |
-| `get_lines` | Information about all Metro lines |
+| Tool | Description | Supported Cities |
+| ---- | ----------- | ---------------- |
+| `get_station_predictions` | Get real-time train arrival predictions for a station | DC, NYC |
+| `search_stations` | Search for stations by name or code | DC, NYC |
+| `get_stations_by_line` | Get all stations on a specific line | DC, NYC |
+| `get_incidents` | Check current service disruptions and advisories | DC, NYC |
+| `get_elevator_incidents` | Find elevator and escalator outages | DC only |
+| `get_all_stations` | Get a complete list of all stations with coordinates | DC, NYC |
 
 ## Technical Details
 
@@ -225,20 +260,67 @@ The server exposes the following tools through the MCP protocol:
 - **Transport:** SSE (Server-Sent Events)
 - **Authentication:** OAuth 2.1 with PKCE (S256)
 
-### WMATA APIs
+### Transit APIs
 
-The server interfaces with the official WMATA APIs. Visit [WMATA's developer documentation](https://developer.wmata.com/) for API details:
+**WMATA (DC Metro):**
+
+The server interfaces with the official WMATA REST APIs. Visit [WMATA's developer documentation](https://developer.wmata.com/) for details:
 
 - **Station predictions:** Real-time train arrival information
 - **Station information:** Station names, codes, and locations
 - **Incidents:** Service disruptions and advisories
 - **Elevator/escalator outages:** Accessibility information
 
+**MTA (NYC Subway):**
+
+The server uses GTFS-Realtime feeds from the MTA. Public API endpoints (no API key required):
+
+- **Real-time feeds:** Protocol Buffers format with 30-second update intervals
+- **8 separate feeds:** Covering all subway lines (1-7, A/C/E, B/D/F/M, etc.)
+- **NYCT extensions:** Train IDs, track assignments, and direction information
+- **Service alerts:** Embedded in GTFS-Realtime alert entities
+
 ### Hosting
 
 - **Platform:** Cloudflare Workers
 - **Storage:** Cloudflare KV (for OAuth client registration)
 - **Runtime:** V8 isolates with global edge deployment
+
+### Source Structure
+
+The codebase is organized for multi-city transit support with a clean separation of concerns:
+
+```text
+src/
+├── index.ts              # Cloudflare Worker entry point
+├── router.ts             # Request routing (OAuth, MCP, API endpoints)
+├── types.ts              # Shared TypeScript type definitions
+│
+├── OAuth & Authentication
+│   ├── auth.ts           # JWT token management and verification
+│   └── oauth-handler.ts  # OAuth 2.1 flow implementation with PKCE
+│
+├── MCP Protocol
+│   ├── mcp-handler.ts    # MCP request processing and tool routing
+│   ├── mcp-tools.ts      # MCP tool definitions (6 tools)
+│   └── mcp-types.ts      # MCP protocol type definitions
+│
+├── Error Handling
+│   └── error-handler.ts  # Multi-city validation and error handling
+│
+└── Transit Abstraction Layer
+    ├── base.ts           # Abstract TransitAPIClient class
+    ├── registry.ts       # Transit client factory (city routing)
+    ├── wmata-client.ts   # DC Metro client (WMATA REST APIs)
+    └── mta-client.ts     # NYC Subway client (GTFS-Realtime)
+```
+
+**Key Architecture Decisions:**
+
+- **Transit Abstraction:** Common `TransitAPIClient` interface enables easy addition of new cities (BART, MBTA, etc.)
+- **City Routing:** Single server handles all cities via `city` parameter in MCP tool calls
+- **Normalized Responses:** All transit clients return standardized `TransitStation`, `TransitPrediction`, and `TransitIncident` types
+- **Extensibility:** Adding a new city only requires implementing the abstract client class
 
 ## Contributing
 

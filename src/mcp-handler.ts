@@ -1,8 +1,10 @@
 import { MCPRequest, MCPResponse, MCPCapabilities } from './mcp-types';
 import { MCP_TOOLS } from './mcp-tools';
-import { WMATAClient } from './wmata-client';
 import { Env } from './types';
-import { validateStationCode, validateLineCode, validateSearchQuery, validateToolParameters, handleWMATAError } from './error-handler';
+import { validateToolParameters, handleWMATAError } from './error-handler';
+import { getTransitClient, isSupportedCity } from './transit/registry';
+import { SupportedCity } from './transit/base';
+import { WMATAClient } from './transit/wmata-client';
 
 export class MCPHandler {
   async processMCPMethod(request: MCPRequest, env: Env): Promise<MCPResponse> {
@@ -68,20 +70,7 @@ export class MCPHandler {
 
   async handleToolCall(params: any, env: Env, id: string | number): Promise<MCPResponse> {
     const { name: toolName, arguments: args = {} } = params;
-    
-    // Check if API key is available
-    if (!env.WMATA_API_KEY || env.WMATA_API_KEY.trim() === '') {
-      return {
-        jsonrpc: '2.0',
-        id,
-        error: {
-          code: -32602,
-          message: 'Invalid params',
-          data: 'WMATA API key is not configured. Please check server configuration.'
-        }
-      };
-    }
-    
+
     // Validate tool parameters
     try {
       validateToolParameters(toolName, args);
@@ -96,135 +85,205 @@ export class MCPHandler {
         }
       };
     }
-    
-    const wmataClient = new WMATAClient(env.WMATA_API_KEY);
-    
+
+    // Validate city parameter
+    const city = args.city as string;
+    if (!city || !isSupportedCity(city)) {
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: {
+          code: -32602,
+          message: 'Invalid params',
+          data: `Unsupported city: ${city}. Supported cities: dc, nyc`
+        }
+      };
+    }
+
+    // Get transit client for the specified city
+    let client;
+    try {
+      client = getTransitClient(city as SupportedCity, env);
+    } catch (error) {
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: {
+          code: -32602,
+          message: 'Invalid params',
+          data: error instanceof Error ? error.message : 'Failed to initialize transit client'
+        }
+      };
+    }
+
     try {
       let result;
 
       switch (toolName) {
-        case 'get_station_predictions':
-          const stationCode = validateStationCode(args.stationCode);
-          const predictions = await wmataClient.getStationPredictions(stationCode);
+        case 'get_station_predictions': {
+          const stationName = args.stationName as string;
+
+          // Auto-convert station name to ID
+          let stationId: string;
+          // Check if it's already a station code (DC: letter + 2 digits, NYC: numeric)
+          if (/^[A-Z]\d{2}$/i.test(stationName)) {
+            // DC station code format
+            stationId = stationName.toUpperCase();
+          } else if (/^\d+[NS]?$/.test(stationName)) {
+            // NYC station ID format
+            stationId = stationName;
+          } else {
+            // Search for station by name
+            const searchResults = await client.searchStation(stationName);
+            if (searchResults.length === 0) {
+              throw new Error(`No station found matching: ${stationName}`);
+            }
+            stationId = searchResults[0]!.id;
+          }
+
+          const predictions = await client.getStationPredictions(stationId);
           result = {
             content: [
               {
                 type: 'text',
                 text: JSON.stringify({
-                  station: stationCode,
+                  city,
+                  station: stationId,
                   predictions: predictions.map(p => ({
-                    line: p.Line,
-                    destination: p.DestinationName,
-                    minutes: p.Min === 'ARR' ? 'Arriving' : p.Min === 'BRD' ? 'Boarding' : `${p.Min} min`,
-                    cars: p.Car === '' ? 'Unknown' : p.Car + ' cars',
-                    group: p.Group
+                    line: p.line,
+                    destination: p.destination,
+                    minutes: typeof p.minutesAway === 'string'
+                      ? p.minutesAway
+                      : `${p.minutesAway} min`,
+                    cars: p.cars,
+                    direction: p.direction,
+                    track: p.track
                   }))
                 }, null, 2)
               }
             ]
           };
           break;
+        }
 
-        case 'search_stations':
-          const query = validateSearchQuery(args.query);
-          const stations = await wmataClient.searchStation(query);
+        case 'search_stations': {
+          const query = args.query as string;
+          const stations = await client.searchStation(query);
           result = {
             content: [
               {
                 type: 'text',
                 text: JSON.stringify({
+                  city,
                   query,
                   results: stations.map(s => ({
-                    code: s.Code,
-                    name: s.Name,
-                    lines: [s.LineCode1, s.LineCode2, s.LineCode3, s.LineCode4].filter(line => line !== null && line !== ''),
-                    address: s.Address
+                    id: s.id,
+                    name: s.name,
+                    lines: s.lines,
+                    coordinates: { lat: s.latitude, lon: s.longitude },
+                    address: s.address
                   }))
                 }, null, 2)
               }
             ]
           };
           break;
+        }
 
-        case 'get_stations_by_line':
-          const lineCode = validateLineCode(args.lineCode);
-          const lineStations = await wmataClient.getStationsByLine(lineCode);
+        case 'get_stations_by_line': {
+          const lineCode = args.lineCode as string;
+          const lineStations = await client.getStationsByLine(lineCode);
           result = {
             content: [
               {
                 type: 'text',
                 text: JSON.stringify({
+                  city,
                   line: lineCode,
                   stations: lineStations.map(s => ({
-                    code: s.Code,
-                    name: s.Name,
-                    address: s.Address
+                    id: s.id,
+                    name: s.name,
+                    coordinates: { lat: s.latitude, lon: s.longitude },
+                    address: s.address
                   }))
                 }, null, 2)
               }
             ]
           };
           break;
+        }
 
-        case 'get_incidents':
-          const incidents = await wmataClient.getIncidents();
+        case 'get_incidents': {
+          const incidents = await client.getIncidents();
           result = {
             content: [
               {
                 type: 'text',
                 text: JSON.stringify({
+                  city,
                   incidents: incidents.map(i => ({
-                    id: i.IncidentID,
-                    description: i.Description,
-                    linesAffected: i.LinesAffected,
-                    lastUpdated: i.DateUpdated,
-                    incidentType: i.IncidentType
+                    id: i.incidentId,
+                    description: i.description,
+                    linesAffected: i.linesAffected,
+                    severity: i.severity,
+                    type: i.incidentType,
+                    lastUpdated: i.timestamp
                   }))
                 }, null, 2)
               }
             ]
           };
           break;
+        }
 
-        case 'get_elevator_incidents':
+        case 'get_elevator_incidents': {
+          // Elevator incidents only supported for DC
+          if (city !== 'dc') {
+            throw new Error('Elevator incidents are only supported for DC Metro');
+          }
+          const wmataClient = client as WMATAClient;
           const elevatorIncidents = await wmataClient.getElevatorIncidents();
           result = {
             content: [
               {
                 type: 'text',
                 text: JSON.stringify({
+                  city,
                   elevatorIncidents: elevatorIncidents.map(i => ({
-                    id: i.IncidentID,
-                    description: i.Description,
-                    stationName: i.StartLocationFullName || i.EndLocationFullName,
-                    lastUpdated: i.DateUpdated
+                    id: i.incidentId,
+                    description: i.description,
+                    stationName: i.startLocation || i.endLocation,
+                    lastUpdated: i.timestamp
                   }))
                 }, null, 2)
               }
             ]
           };
           break;
+        }
 
-        case 'get_all_stations':
-          const allStations = await wmataClient.getStations();
+        case 'get_all_stations': {
+          const allStations = await client.getStations();
           result = {
             content: [
               {
                 type: 'text',
                 text: JSON.stringify({
+                  city,
                   totalStations: allStations.length,
                   stations: allStations.map(s => ({
-                    code: s.Code,
-                    name: s.Name,
-                    lines: [s.LineCode1, s.LineCode2, s.LineCode3, s.LineCode4].filter(line => line !== null && line !== ''),
-                    coordinates: { lat: s.Lat, lon: s.Lon },
-                    address: s.Address
+                    id: s.id,
+                    name: s.name,
+                    lines: s.lines,
+                    coordinates: { lat: s.latitude, lon: s.longitude },
+                    address: s.address
                   }))
                 }, null, 2)
               }
             ]
           };
           break;
+        }
 
         default:
           throw new Error(`Unknown tool: ${toolName}`);
@@ -239,7 +298,7 @@ export class MCPHandler {
       // Provide more specific error codes based on the error type
       let errorCode = -32603; // Default internal error
       let errorMessage = 'Internal error';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('401') || error.message.includes('Access denied')) {
           errorCode = -32602;
@@ -252,7 +311,7 @@ export class MCPHandler {
           errorMessage = 'Method not found';
         }
       }
-      
+
       return {
         jsonrpc: '2.0',
         id,
