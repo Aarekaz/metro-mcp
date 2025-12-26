@@ -12,6 +12,7 @@ import {
   TransitPrediction,
   TransitIncident,
 } from './base';
+import { NYC_STATIONS } from './nyc-stations';
 
 /**
  * MTA GTFS-Realtime feed URLs
@@ -48,70 +49,6 @@ interface CachedFeed {
   data: GtfsRealtimeBindings.transit_realtime.FeedMessage;
   timestamp: number;
 }
-
-/**
- * NYC Subway static station data
- * In production, this would be loaded from GTFS static data
- * For now, including key stations as examples
- */
-const NYC_STATIONS: TransitStation[] = [
-  {
-    id: '127',
-    name: 'Times Square-42nd St',
-    city: 'nyc',
-    latitude: 40.7549,
-    longitude: -73.9872,
-    lines: ['1', '2', '3', '7', 'N', 'Q', 'R', 'W', 'S'],
-  },
-  {
-    id: '902',
-    name: 'Grand Central-42nd St',
-    city: 'nyc',
-    latitude: 40.7516,
-    longitude: -73.9768,
-    lines: ['4', '5', '6', '7', 'S'],
-  },
-  {
-    id: 'R16',
-    name: 'Union Square-14th St',
-    city: 'nyc',
-    latitude: 40.7347,
-    longitude: -73.9907,
-    lines: ['4', '5', '6', 'L', 'N', 'Q', 'R', 'W'],
-  },
-  {
-    id: 'A27',
-    name: 'Penn Station-34th St',
-    city: 'nyc',
-    latitude: 40.7505,
-    longitude: -73.9911,
-    lines: ['A', 'C', 'E'],
-  },
-  {
-    id: 'D14',
-    name: 'Herald Square-34th St',
-    city: 'nyc',
-    latitude: 40.7494,
-    longitude: -73.9878,
-    lines: ['B', 'D', 'F', 'M', 'N', 'Q', 'R', 'W'],
-  },
-  {
-    id: 'R01',
-    name: 'Whitehall St-South Ferry',
-    city: 'nyc',
-    latitude: 40.7033,
-    longitude: -74.0129,
-    lines: ['R', 'W'],
-  },
-  {
-    id: 'A41',
-    name: 'Fulton St',
-    city: 'nyc',
-    latitude: 40.7105,
-    longitude: -74.0068,
-    lines: ['A', 'C', 'J', 'Z', '2', '3', '4', '5'],
-  },
-];
 
 export class MTAClient extends TransitAPIClient {
   private feedCache: Map<keyof typeof MTA_FEEDS, CachedFeed>;
