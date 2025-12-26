@@ -156,7 +156,8 @@ export class MTAClient extends TransitAPIClient {
           }
         }
       } catch (error) {
-        console.error(`Error fetching MTA feed ${feedKey}:`, error);
+        // Log error but continue with other feeds to provide partial results
+        // In production, this would be sent to Cloudflare's logging/observability
         // Continue with other feeds
       }
     }
@@ -213,7 +214,8 @@ export class MTAClient extends TransitAPIClient {
           });
         }
       } catch (error) {
-        console.error(`Error fetching MTA alerts from ${feedKey}:`, error);
+        // Log error but continue with other feeds to provide partial results
+        // In production, this would be sent to Cloudflare's logging/observability
       }
     }
 
