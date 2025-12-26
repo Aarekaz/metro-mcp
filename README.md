@@ -1,38 +1,69 @@
-# Metro MCP
+# 🚇 Metro MCP
 
-A remote Model Context Protocol (MCP) server that interfaces with the Washington, DC, Metro (WMATA) APIs. Built for integration with MCP-compatible clients. Configured to deploy on Cloudflare Workers.
+> Model Context Protocol Server for Washington DC Metro
 
-## Features
+[![MCP](https://img.shields.io/badge/MCP-2025--03--26-blue)](https://modelcontextprotocol.io)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)](https://workers.cloudflare.com)
+[![OAuth 2.1](https://img.shields.io/badge/OAuth-2.1%20%2B%20PKCE-green)](https://oauth.net/2.1/)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-Ask natural questions about the Metro:
+A remote Model Context Protocol (MCP) server that interfaces with the Washington, DC, Metro (WMATA) APIs. Built for seamless integration with MCP-compatible clients like Claude Desktop.
 
-**Real-Time Transit Information**
+**Quick Links:** [Quick Start](#quick-start) • [What You Can Do](#what-you-can-do) • [Deployment](#deployment) • [Client Integration](#mcp-client-integration)
 
-- Check train arrivals: "When is the next Red Line train at Dupont Circle?"
-- Get service alerts: "Are there any delays on the Blue Line right now?"
-- Find elevator/escalator outages: "Are all the elevators working at Union Station?"
+---
 
-**Station Information & Navigation**
+## What You Can Do
 
-- Search for stations: "Where is the Smithsonian Metro station?"
-- Get stations by line: "Show me all the stations on the Green Line"
+Ask natural language questions about Washington DC Metro in Claude Desktop or any MCP-compatible client:
 
-**Trip Planning & Accessibility**
+### 🚆 Real-Time Transit Information
 
-- Route planning: "How do I get from Capitol South to Bethesda?"
-- Check accessibility: "Are there any elevator outages between here and National Airport?"
-- Real-time predictions: "What are the next 3 trains arriving at Gallery Place?"
+- **Train arrivals:** *"When is the next Red Line train at Dupont Circle?"*
+- **Service alerts:** *"Are there any delays on the Blue Line right now?"*
+- **Elevator/escalator outages:** *"Are all the elevators working at Union Station?"*
 
-**Service Monitoring**
+### 🗺️ Station Information & Navigation
 
-- Current incidents: "Any Metro delays right now?"
-- Line-specific issues: "Is the Orange Line running normally?"
-- Construction updates: "What stations are closed for construction?"
+- **Search stations:** *"Where is the Smithsonian Metro station?"*
+- **Stations by line:** *"Show me all the stations on the Green Line"*
+- **Route planning:** *"How do I get from Capitol South to Bethesda?"*
 
-**Geographic & System Info**
+### ♿ Accessibility
 
-- Get all stations: Complete list of Metro stations with their coordinates
-- Line information: Details about all six Metro lines
+- **Elevator status:** *"Are there any elevator outages between here and National Airport?"*
+- **Station accessibility:** *"Which stations have working elevators right now?"*
+
+### 🔔 Service Monitoring
+
+- **Current incidents:** *"Any Metro delays right now?"*
+- **Line-specific issues:** *"Is the Orange Line running normally?"*
+- **Real-time predictions:** *"What are the next 3 trains arriving at Gallery Place?"*
+
+### 📊 System Information
+
+- Complete list of all Metro stations with coordinates
+- Information about all six Metro lines (Red, Blue, Orange, Silver, Green, Yellow)
+- Historical incident tracking
+
+---
+
+## Quick Start
+
+### Using the Public Server
+
+The fastest way to get started is to use the hosted instance:
+
+1. Open Claude Desktop
+2. Add this URL: `https://metro-mcp.aarekaz.workers.dev`
+3. Click "Connect" and authorize via GitHub
+4. Start asking questions about DC Metro!
+
+### Deploy Your Own
+
+Want to run your own instance? See the [Deployment](#deployment) section below.
+
+---
 
 ## Deployment
 
@@ -43,7 +74,7 @@ Ask natural questions about the Metro:
 - [Bun](https://bun.sh/) or Node.js installed
 - [GitHub OAuth App](https://github.com/settings/developers) (for authentication)
 
-### Quick Start
+### Setup Steps
 
 **1. Install dependencies:**
 
@@ -159,15 +190,54 @@ The server implements OAuth 2.1 with PKCE for secure authentication:
 - JWT tokens with 90-day expiration
 - Rate limiting and origin validation
 
-## API Documentation
+## Available MCP Tools
 
-The MCP server interfaces with the official WMATA APIs. Vist WMATA's developer documentation for details.
+The server exposes the following tools through the MCP protocol:
 
-- Station predictions: Real-time train arrival information
-- Station information: Station names, codes, and locations
-- Incidents: Service disruptions and advisories
-- Elevator/escalator outages: Accessibility information
+| Tool | Description |
+| ---- | ----------- |
+| `get_next_trains` | Get real-time train predictions for a specific station |
+| `get_station_info` | Retrieve detailed information about Metro stations |
+| `get_incidents` | Check current service disruptions and advisories |
+| `get_elevator_incidents` | Find elevator and escalator outages |
+| `get_all_stations` | Get a complete list of all Metro stations |
+| `get_lines` | Information about all Metro lines |
+
+## Technical Details
+
+### MCP Protocol
+
+- **Version:** 2025-03-26
+- **Transport:** SSE (Server-Sent Events)
+- **Authentication:** OAuth 2.1 with PKCE (S256)
+
+### WMATA APIs
+
+The server interfaces with the official WMATA APIs. Visit [WMATA's developer documentation](https://developer.wmata.com/) for API details:
+
+- **Station predictions:** Real-time train arrival information
+- **Station information:** Station names, codes, and locations
+- **Incidents:** Service disruptions and advisories
+- **Elevator/escalator outages:** Accessibility information
+
+### Hosting
+
+- **Platform:** Cloudflare Workers
+- **Storage:** Cloudflare KV (for OAuth client registration)
+- **Runtime:** V8 isolates with global edge deployment
+
+## Contributing
+
+Contributions are welcome! Feel free to:
+
+- Report bugs or request features via [GitHub Issues](https://github.com/yourusername/metro-mcp/issues)
+- Submit pull requests with improvements
+- Share feedback on the MCP implementation
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+Built with ❤️ for the Washington DC Metro community
