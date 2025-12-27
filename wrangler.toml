@@ -24,19 +24,10 @@ preview_id = "7d10b069531a459cb56ed59220ede55b"
 # - Automatic expiration via TTL
 # - Different access patterns than OAuth data
 # - Better performance and cost optimization
-#
-# SETUP INSTRUCTIONS:
-# 1. Create production KV namespace:
-#    wrangler kv:namespace create "RATE_LIMIT_KV"
-# 2. Create preview KV namespace:
-#    wrangler kv:namespace create "RATE_LIMIT_KV" --preview
-# 3. Update the IDs below with the output from those commands
-#
-# TEMPORARY: Using placeholder IDs - update these after creating KV namespaces
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "PLACEHOLDER-CREATE-WITH-WRANGLER-KV-NAMESPACE-CREATE"
-preview_id = "PLACEHOLDER-CREATE-WITH-WRANGLER-KV-NAMESPACE-CREATE-PREVIEW"
+id = "93885a8c949b4298a7d866e2cef408b3"
+preview_id = "7cbeddccb3a94346b4452f40bc692b39"
 
 # Non-secret environment variables
 [vars]

@@ -275,6 +275,88 @@ export interface WMATAIncident {
 }
 
 /**
+ * WMATA bus prediction from API
+ *
+ * Endpoint: /NextBusService.svc/json/jPredictions
+ * Returns next bus arrival times at a stop
+ */
+export interface WMATABusPrediction {
+  DirectionNum: string;
+  DirectionText: string;
+  Minutes: number;
+  RouteID: string;
+  TripID: string;
+  VehicleID: string;
+}
+
+/**
+ * WMATA train position from API
+ *
+ * Endpoint: /TrainPositions/TrainPositions
+ * Returns real-time train positions and track circuit occupancy
+ * Refreshed every 7-10 seconds
+ */
+export interface WMATATrainPosition {
+  TrainId: string;
+  TrainNumber: string;
+  CarCount: number;
+  DirectionNum: number;
+  CircuitId: number;
+  DestinationStationCode: string | null;
+  LineCode: string | null;
+  SecondsAtLocation: number;
+  ServiceType: string;
+}
+
+/**
+ * WMATA bus route from API
+ *
+ * Endpoint: /Bus.svc/json/jRoutes
+ * Returns list of all bus route variants
+ */
+export interface WMATABusRoute {
+  RouteID: string;
+  Name: string;
+  LineDescription: string;
+}
+
+/**
+ * WMATA bus stop from API
+ *
+ * Endpoint: /Bus.svc/json/jStops
+ * Returns bus stops by location or all stops
+ */
+export interface WMATABusStop {
+  Lat: number;
+  Lon: number;
+  Name: string;
+  Routes: string[];
+  StopID: string;
+}
+
+/**
+ * WMATA bus position from API
+ *
+ * Endpoint: /Bus.svc/json/jBusPositions
+ * Returns real-time bus positions
+ * Refreshed every 7-10 seconds
+ */
+export interface WMATABusPosition {
+  DateTime: string;
+  Deviation: number;
+  DirectionNum: string;
+  DirectionText: string;
+  Lat: number;
+  Lon: number;
+  RouteID: string;
+  TripEndTime: string;
+  TripHeadsign: string;
+  TripID: string;
+  TripStartTime: string;
+  VehicleID: string;
+}
+
+/**
  * Request validation result
  *
  * WHY RESULT TYPE:
