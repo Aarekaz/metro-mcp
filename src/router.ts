@@ -111,7 +111,7 @@ export class Router {
             system: 'WMATA',
             stations: 98,
             lines: 6,
-            features: ['real-time', 'alerts', 'elevators', 'search', 'line-info']
+            features: ['real-time', 'alerts', 'elevators', 'search', 'line-info', 'bus-routes', 'bus-stops', 'bus-positions', 'train-positions']
           },
           {
             code: 'nyc',
@@ -126,7 +126,7 @@ export class Router {
           totalStations: 589,
           totalLines: 32,
           citiesSupported: 2,
-          toolsAvailable: 6
+          toolsAvailable: 11
         },
         endpoints: {
           mcp: '/sse',
@@ -148,7 +148,12 @@ export class Router {
           'get_stations_by_line',
           'get_incidents',
           'get_elevator_incidents',
-          'get_all_stations'
+          'get_all_stations',
+          'get_bus_predictions',
+          'get_bus_routes',
+          'get_bus_stops',
+          'get_bus_positions',
+          'get_train_positions'
         ]
       }, null, 2), {
         headers: {
