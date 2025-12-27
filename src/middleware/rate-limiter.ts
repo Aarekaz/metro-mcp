@@ -52,7 +52,6 @@ export interface RateLimitResult {
  * 
  * WHY THESE NUMBERS:
  * - Free tier (100/min): Generous for individuals, prevents abuse
- * - Premium tier (1000/min): Supports production applications
  * - OAuth (200/min): Higher because auth flows need multiple requests
  * 
  * FUTURE: These could be moved to environment variables or

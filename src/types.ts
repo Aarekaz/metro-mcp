@@ -208,8 +208,75 @@ export interface TransitIncident {
 }
 
 /**
+ * WMATA API Response Types
+ *
+ * WHY WMATA-SPECIFIC TYPES:
+ * WMATA (DC Metro) API returns data in a specific format.
+ * These types match the actual API responses from api.wmata.com.
+ * The WMATAClient normalizes these to the common Transit types above.
+ */
+
+/**
+ * WMATA station address
+ */
+export interface WMATAAddress {
+  City: string;
+  State: string;
+  Street: string;
+  Zip: string;
+}
+
+/**
+ * WMATA station data from API
+ */
+export interface WMATAStation {
+  Address: WMATAAddress;
+  Code: string;
+  Lat: number;
+  Lon: number;
+  LineCode1: string;
+  LineCode2: string | null;
+  LineCode3: string | null;
+  LineCode4: string | null;
+  Name: string;
+  StationTogether1: string;
+  StationTogether2: string;
+}
+
+/**
+ * WMATA train prediction from API
+ */
+export interface WMATAPrediction {
+  Car: string;
+  Destination: string;
+  DestinationCode: string;
+  DestinationName: string;
+  Group: string;
+  Line: string;
+  LocationCode: string;
+  LocationName: string;
+  Min: string;
+}
+
+/**
+ * WMATA incident/alert from API
+ */
+export interface WMATAIncident {
+  DateUpdated: string;
+  DelaySeverity: string | null;
+  Description: string;
+  EmergencyText: string | null;
+  EndLocationFullName: string | null;
+  IncidentID: string;
+  IncidentType: string;
+  LinesAffected: string;
+  PassengerDelay: number;
+  StartLocationFullName: string | null;
+}
+
+/**
  * Request validation result
- * 
+ *
  * WHY RESULT TYPE:
  * Allows functions to return success/failure without throwing.
  * Makes error handling more explicit.
