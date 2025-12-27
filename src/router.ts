@@ -93,8 +93,9 @@ export class Router {
         status: 'operational',
         timestamp: new Date().toISOString(),
         lastUpdated: '2025-12-26',
-        author: 'Anurag Agarwal',
+        author: 'Anurag Dhungana',
         links: {
+          website: 'https://anuragd.me',
           github: 'https://github.com/Aarekaz/metro-mcp',
           mcp: 'https://metro-mcp.aarekaz.workers.dev/'
         },

@@ -41,6 +41,7 @@
     "gtfs",
     "real-time"
   ],
-  "author": "Nathaniel Noyd",
+  "author": "Anurag Dhungana",
+  "homepage": "https://anuragd.me",
   "license": "MIT"
 }
