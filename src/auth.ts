@@ -230,11 +230,6 @@ export class AuthManager {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       return authHeader.substring(7);
     }
-    const url = new URL(request.url);
-    const accessToken = url.searchParams.get('access_token') || url.searchParams.get('token');
-    if (accessToken) {
-      return accessToken;
-    }
     return null;
   }
 

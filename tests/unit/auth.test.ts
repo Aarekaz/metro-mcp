@@ -145,6 +145,11 @@ describe('AuthManager', () => {
       const token = authManager.extractTokenFromRequest(request);
       expect(token).toBeNull();
     });
+
+    it('should not accept bearer tokens from URL query parameters', () => {
+      const request = new Request('http://localhost/?access_token=leaked-token');
+      expect(authManager.extractTokenFromRequest(request)).toBeNull();
+    });
   });
 
   describe('generateState', () => {

@@ -3,6 +3,66 @@ import { AuthManager, AuthError } from './auth';
 import { detectResponseContext, addSecurityHeaders } from './middleware/security-headers';
 
 export class OAuthHandler {
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>'"]/g, character => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    })[character]!);
+  }
+
+  private getAuthorizationCodeStub(code: string, env: Env): DurableObjectStub {
+    const id = env.SECURITY_STATE.idFromName(`oauth-code:${code}`);
+    return env.SECURITY_STATE.get(id);
+  }
+
+  private async storeAuthorizationCode(
+    code: string,
+    data: Record<string, unknown>,
+    env: Env
+  ): Promise<void> {
+    const response = await this.getAuthorizationCodeStub(code, env).fetch(
+      'https://security-state/oauth-code',
+      { method: 'PUT', body: JSON.stringify(data) }
+    );
+    if (!response.ok) {
+      throw new AuthError('Failed to store authorization code', 500);
+    }
+  }
+
+  private async consumeAuthorizationCode(
+    code: string,
+    clientId: string,
+    codeVerifier: string,
+    env: Env
+  ): Promise<Record<string, unknown> | null> {
+    const verifierHash = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(codeVerifier)
+    );
+    const codeChallenge = this.base64UrlEncodeBytes(new Uint8Array(verifierHash));
+    const response = await this.getAuthorizationCodeStub(code, env).fetch(
+      'https://security-state/oauth-code/consume',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, codeChallenge })
+      }
+    );
+    if (response.status === 404) {
+      return null;
+    }
+    if (response.status === 403) {
+      throw new AuthError('Authorization code client or PKCE verifier mismatch', 400);
+    }
+    if (!response.ok) {
+      throw new AuthError('Failed to consume authorization code', 500);
+    }
+    return response.json<Record<string, unknown>>();
+  }
+
   private base64UrlEncodeBytes(bytes: Uint8Array): string {
     return btoa(String.fromCharCode(...bytes))
       .replace(/=/g, '')
@@ -267,37 +327,29 @@ export class OAuthHandler {
         });
       }
 
-      // Retrieve authorization code data
-      const authCodeDataStr = await env.OAUTH_CLIENTS.get(`authcode:${code}`);
-      if (!authCodeDataStr) {
+      if (!clientId) {
+        return new Response(JSON.stringify({
+          error: 'invalid_request',
+          error_description: 'client_id is required'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Atomically consume the one-time authorization code before issuing a
+      // token. The client may retry the whole authorization flow if a later
+      // validation fails, but the same code can never mint two access tokens.
+      const authCodeData = await this.consumeAuthorizationCode(
+        code,
+        clientId,
+        codeVerifier,
+        env
+      );
+      if (!authCodeData) {
         return new Response(JSON.stringify({
           error: 'invalid_grant',
           error_description: 'Invalid or expired authorization code'
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
-
-      const authCodeData = JSON.parse(authCodeDataStr);
-
-      // Verify client ID matches
-      if (clientId && authCodeData.clientId !== clientId) {
-        return new Response(JSON.stringify({
-          error: 'invalid_grant',
-          error_description: 'Client ID mismatch'
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
-
-      // Verify PKCE code_verifier against code_challenge
-      const verified = await authManager.verifyPKCE(codeVerifier, authCodeData.codeChallenge);
-      if (!verified) {
-        return new Response(JSON.stringify({
-          error: 'invalid_grant',
-          error_description: 'Invalid code_verifier'
         }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
@@ -308,17 +360,14 @@ export class OAuthHandler {
       // the original /authorize request included a `resource` parameter.
       const expiresAt = Math.floor(Date.now() / 1000) + (90 * 24 * 60 * 60);
       const session: AuthSession = {
-        userId: authCodeData.userId,
-        userLogin: authCodeData.userLogin,
+        userId: String(authCodeData.userId),
+        userLogin: String(authCodeData.userLogin),
         expiresAt,
-        audience: authCodeData.resource
+        audience: typeof authCodeData.resource === 'string' ? authCodeData.resource : undefined
       };
 
       // Generate JWT token
       const jwtToken = await authManager.generateJWT(session);
-
-      // Delete used authorization code
-      await env.OAUTH_CLIENTS.delete(`authcode:${code}`);
 
       return this.addSecurityHeaders(new Response(JSON.stringify({
         access_token: jwtToken,
@@ -377,24 +426,24 @@ export class OAuthHandler {
 
       const authManager = new AuthManager(env);
 
-      // Generate secure client ID and secret
+      // Dynamic registrations are public PKCE clients. Do not issue a secret
+      // that this server does not authenticate.
       const clientId = 'mcp_' + authManager.generateState().substring(0, 32);
-      const clientSecret = authManager.generateState();
 
       // Store client in KV (no expiration for persistent client registration)
       await env.OAUTH_CLIENTS.put(`client:${clientId}`, JSON.stringify({
         client_id: clientId,
-        client_secret: clientSecret,
         client_name,
         redirect_uris,
+        token_endpoint_auth_method: 'none',
         created_at: new Date().toISOString()
       }));
 
       return this.addSecurityHeaders(new Response(JSON.stringify({
         client_id: clientId,
-        client_secret: clientSecret,
         client_name,
-        redirect_uris
+        redirect_uris,
+        token_endpoint_auth_method: 'none'
       }), {
         headers: {
           'Content-Type': 'application/json'
@@ -423,7 +472,7 @@ export class OAuthHandler {
           <head><title>Metro MCP - OAuth Error</title></head>
           <body>
             <h1>Authorization Failed</h1>
-            <p>Error: ${error}</p>
+            <p>Error: ${this.escapeHtml(error)}</p>
             <p>Please try again or contact support.</p>
           </body>
         </html>
@@ -479,8 +528,8 @@ export class OAuthHandler {
       // Generate MCP authorization code
       const mcpAuthCode = authManager.generateState();
 
-      // Store authorization code with user info and PKCE challenge (valid for 10 minutes)
-      await env.OAUTH_CLIENTS.put(`authcode:${mcpAuthCode}`, JSON.stringify({
+      // Store the authorization code in a strongly consistent Durable Object.
+      await this.storeAuthorizationCode(mcpAuthCode, {
         userId: user.id,
         userLogin: user.login,
         userName: user.name,
@@ -489,8 +538,9 @@ export class OAuthHandler {
         redirectUri: pkceData.redirectUri,
         codeChallenge: pkceData.codeChallenge,
         resource: pkceData.resource,
-        createdAt: Date.now()
-      }), { expirationTtl: 600 });
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000
+      }, env);
 
       // Clean up PKCE state
       await env.OAUTH_CLIENTS.delete(`pkce:${state}`);
@@ -509,7 +559,7 @@ export class OAuthHandler {
           <head><title>Metro MCP - OAuth Error</title></head>
           <body>
             <h1>Authorization Failed</h1>
-            <p>Error processing authorization: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+            <p>Error processing authorization: ${this.escapeHtml(error instanceof Error ? error.message : 'Unknown error')}</p>
           </body>
         </html>
       `, {

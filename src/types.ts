@@ -49,31 +49,6 @@ export interface Env {
   OAUTH_CLIENTS: KVNamespace;
 
   /**
-   * Rate limiting storage
-   *
-   * WHY SEPARATE KV:
-   * - High write volume (every request)
-   * - Automatic expiration (TTL)
-   * - Separate from OAuth data (different access patterns)
-   *
-   * USAGE:
-   * await env.RATE_LIMIT_KV.put(key, count, { expirationTtl: 60 });
-   * const count = await env.RATE_LIMIT_KV.get(key);
-   */
-  RATE_LIMIT_KV?: KVNamespace;     // Optional for backward compatibility
-
-  /**
-   * MCP session storage (legacy KV path).
-   *
-   * Sessions now live in the MetroMcpAgent Durable Object via the
-   * MCP_SESSION binding below. This KV binding is kept as optional so
-   * any existing values can drain (24h TTL) without a deploy-time
-   * binding error. Remove from wrangler.jsonc and this interface in a
-   * follow-up once observation confirms no live sessions remain.
-   */
-  MCP_SESSIONS?: KVNamespace;
-
-  /**
    * MCP session Durable Object namespace.
    *
    * Each MetroMcpAgent instance is one MCP session, addressed by the
@@ -83,6 +58,9 @@ export interface Env {
    * invoked with `{ binding: "MCP_SESSION" }`.
    */
   MCP_SESSION: DurableObjectNamespace;
+
+  /** Strongly consistent OAuth-code and rate-limit coordination. */
+  SECURITY_STATE: DurableObjectNamespace;
 
   /**
    * Static assets fetcher (public/index.html landing page).
@@ -150,10 +128,11 @@ export interface AuthSession {
  */
 export interface OAuthClient {
   client_id: string;              // Unique client identifier
-  client_secret: string;          // Client secret (hashed)
+  client_secret?: string;         // Omitted for public PKCE clients
   redirect_uris: string[];        // Allowed redirect URIs
   client_name?: string;           // Human-readable name
-  created_at: number;             // Unix timestamp (milliseconds)
+  token_endpoint_auth_method?: 'none';
+  created_at: number | string;    // Legacy timestamp or RFC 3339 registration time
   last_used_at?: number;          // Unix timestamp (milliseconds)
 }
 

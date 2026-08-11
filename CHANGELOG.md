@@ -5,6 +5,24 @@ All notable changes to Metro MCP will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.1] - OAuth and transit hardening
+
+### Fixed
+
+- Escape OAuth callback errors and apply a script-free CSP to HTML responses.
+- Validate and consume authorization codes atomically with client and PKCE binding.
+- Enforce the documented request limits through strongly consistent Durable Object counters.
+- Drop stale NYC arrivals, report terminal station names, fetch feeds concurrently, and surface upstream outages.
+- Reject bearer tokens in query strings and advertise only implemented OAuth grants and client authentication.
+
+### Changed
+
+- Added the `SecurityState` Durable Object and migration `v2` for OAuth codes and rate limits.
+- Updated the MCP, GTFS, Zod, Wrangler, Workers types, and Vitest dependency stack.
+- Pinned patched transitive releases for the remaining production audit advisories.
+- Removed the unused Workers OAuth provider dependency and obsolete rate-limit KV binding.
+- Added production-path regression coverage for OAuth, routing, and MTA behavior.
+
 ## [4.0.0] - Durable Objects rearchitect via cloudflare/agents McpAgent
 
 A foundational rewrite of how Metro MCP serves sessions. The MCP API

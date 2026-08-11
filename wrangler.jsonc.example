@@ -5,9 +5,6 @@
  * Then create the KV namespaces and DO migration:
  *   bunx wrangler kv namespace create "OAUTH_CLIENTS"
  *   bunx wrangler kv namespace create "OAUTH_CLIENTS" --preview
- *   bunx wrangler kv namespace create "RATE_LIMIT_KV"
- *   bunx wrangler kv namespace create "RATE_LIMIT_KV" --preview
- *
  * The DO migration runs automatically on first `wrangler deploy`.
  */
 {
@@ -28,6 +25,10 @@
       {
         "name": "MCP_SESSION",
         "class_name": "MetroMcpAgent"
+      },
+      {
+        "name": "SECURITY_STATE",
+        "class_name": "SecurityState"
       }
     ]
   },
@@ -36,6 +37,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["MetroMcpAgent"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["SecurityState"]
     }
   ],
 
@@ -44,11 +49,6 @@
       "binding": "OAUTH_CLIENTS",
       "id": "your-kv-namespace-id-here",
       "preview_id": "your-preview-kv-namespace-id-here"
-    },
-    {
-      "binding": "RATE_LIMIT_KV",
-      "id": "your-rate-limit-kv-id-here",
-      "preview_id": "your-preview-rate-limit-kv-id-here"
     }
   ],
 

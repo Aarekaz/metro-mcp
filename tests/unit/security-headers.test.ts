@@ -35,8 +35,8 @@ describe('Security Headers', () => {
       const secured = addSecurityHeaders(response, 'html');
 
       const csp = secured.headers.get('Content-Security-Policy');
-      expect(csp).toContain("script-src 'self' 'unsafe-inline'");
-      expect(csp).toContain("style-src 'self' 'unsafe-inline'");
+      expect(csp).toContain("script-src 'none'");
+      expect(csp).toContain("style-src 'none'");
     });
 
     it('should add X-Content-Type-Options header', () => {
@@ -190,10 +190,10 @@ describe('Security Headers', () => {
       expect(body).toBe(html);
     });
 
-    it('should allow inline scripts for OAuth', () => {
+    it('should block inline scripts for OAuth', () => {
       const response = createSecureHtmlResponse('<html></html>');
       const csp = response.headers.get('Content-Security-Policy');
-      expect(csp).toContain("'unsafe-inline'");
+      expect(csp).not.toContain("'unsafe-inline'");
     });
   });
 
@@ -211,9 +211,8 @@ describe('Security Headers', () => {
       const response = createSecureHtmlResponse('<html></html>');
       const csp = response.headers.get('Content-Security-Policy');
 
-      // Should allow scripts and styles (for OAuth)
-      expect(csp).toContain("script-src 'self' 'unsafe-inline'");
-      expect(csp).toContain("style-src 'self' 'unsafe-inline'");
+      expect(csp).toContain("script-src 'none'");
+      expect(csp).toContain("style-src 'none'");
       
       // But still block frames
       expect(csp).toContain("frame-ancestors 'none'");

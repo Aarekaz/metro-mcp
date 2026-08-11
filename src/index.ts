@@ -4,6 +4,7 @@ import { Router } from './router';
 // Export MetroMcpAgent so the wrangler.jsonc DO binding can resolve the class.
 // Cloudflare's bundler discovers DO classes by name at deploy time.
 export { MetroMcpAgent } from './mcp-agent';
+export { SecurityState } from './security-state';
 
 const router = new Router();
 
