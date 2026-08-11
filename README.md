@@ -107,7 +107,7 @@ Want to run your own instance? See the [Deployment](#deployment) section below.
 
 - [WMATA API Key](https://developer.wmata.com/) (required)
 - [Cloudflare Account](https://dash.cloudflare.com/) (free tier works)
-- [Bun](https://bun.sh/) or Node.js installed
+- [Bun](https://bun.sh/) 1.3+ or Node.js 22.18+ installed
 - [GitHub OAuth App](https://github.com/settings/developers) (for authentication)
 
 ### Setup Steps
@@ -143,9 +143,6 @@ openssl rand -hex 32
 bunx wrangler kv namespace create "OAUTH_CLIENTS"
 bunx wrangler kv namespace create "OAUTH_CLIENTS" --preview
 
-# Create rate limiting namespace
-bunx wrangler kv namespace create "RATE_LIMIT_KV"
-bunx wrangler kv namespace create "RATE_LIMIT_KV" --preview
 ```
 
 Copy the IDs from the output and update `wrangler.jsonc`.
@@ -317,8 +314,8 @@ The server uses GTFS-Realtime feeds from the MTA. Public API endpoints (no API k
 - **Static assets:** `public/` is deployed through Cloudflare Workers Static Assets and bound as `env.ASSETS`; the Worker serves API/OAuth/MCP routes first, then delegates landing-page, docs, image, and icon requests to the assets binding.
 - **Storage:**
   - Cloudflare KV `OAUTH_CLIENTS` — registered OAuth clients
-  - Cloudflare KV `RATE_LIMIT_KV` — rate-limit counters
   - Durable Object `MCP_SESSION` (class `MetroMcpAgent`) — per-session MCP state, transport, and event log
+  - Durable Object `SECURITY_STATE` (class `SecurityState`) — atomic one-time OAuth codes and per-client rate limits
 - **Runtime:** V8 isolates with global edge deployment
 
 ### Source Structure
@@ -330,6 +327,7 @@ src/
 ├── index.ts              # Cloudflare Worker entry point and DO export
 ├── router.ts             # Request routing (OAuth, MCP, info, static assets)
 ├── server-info.ts        # Public /info capability summary
+├── security-state.ts     # Atomic OAuth-code and rate-limit state
 ├── config.ts             # Runtime config, caching, and rate-limit defaults
 ├── types.ts              # Shared TypeScript type definitions
 │

@@ -52,28 +52,13 @@ const CSP_POLICIES: Record<ResponseContext, string> = {
   /**
    * HTML context (OAuth callbacks)
    * 
-   * WHY 'unsafe-inline' FOR SCRIPTS:
-   * OAuth callback pages need inline scripts to:
-   * 1. Extract authorization code from URL
-   * 2. Display the code to the user
-   * 3. Handle the OAuth flow completion
-   * 
-   * SECURITY TRADEOFF:
-   * We accept 'unsafe-inline' for OAuth pages because:
-   * - These pages are generated server-side
-   * - No user-controlled content is rendered
-   * - The inline scripts are minimal and audited
-   * - Alternative (nonces) would complicate deployment
-   * 
-   * MITIGATION:
-   * - OAuth pages don't accept user input
-   * - Scripts are static and reviewed
-   * - frame-ancestors prevents clickjacking
+   * OAuth callback pages are static status documents. They do not need script
+   * execution or inline styles, so keep the policy as strict as the JSON API.
    */
   html: [
     "default-src 'none'",
-    "script-src 'self' 'unsafe-inline'",  // Allow inline scripts for OAuth
-    "style-src 'self' 'unsafe-inline'",   // Allow inline styles
+    "script-src 'none'",
+    "style-src 'none'",
     "img-src 'self' data:",               // Allow images from same origin and data URIs
     "connect-src 'self'",                 // Allow AJAX to same origin
     "frame-ancestors 'none'",             // Prevent embedding in frames

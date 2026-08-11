@@ -8,18 +8,9 @@ import { Env } from '../types';
  * - MCP endpoints are the main API and need standard protection
  * - Static endpoints can have lower limits
  * 
- * ARCHITECTURE DECISION:
- * We use Cloudflare KV for rate limiting because:
- * 1. It's globally distributed (low latency from any edge location)
- * 2. Atomic operations prevent race conditions
- * 3. Automatic expiration handles cleanup
- * 4. No additional infrastructure needed
- * 
- * ALTERNATIVE CONSIDERED:
- * Durable Objects would provide stronger consistency but:
- * - Higher cost for simple rate limiting
- * - Adds latency for coordination
- * - Overkill for this use case
+ * Counters live in Durable Objects because KV read/modify/write operations are
+ * not atomic. One object per client and endpoint tier serializes concurrent
+ * requests without turning unrelated clients into a global bottleneck.
  */
 export interface RateLimitConfig {
   /** Maximum requests allowed in the window */
@@ -76,31 +67,21 @@ const DEFAULT_CONFIGS: Record<string, RateLimitConfig> = {
 };
 
 /**
- * Rate Limiter using Cloudflare KV
+ * Rate limiter backed by the SECURITY_STATE Durable Object namespace.
  * 
- * ALGORITHM: Sliding Window Counter
- * 1. Calculate current time window (floor to minute)
- * 2. Read counter for this client+window from KV
- * 3. If under limit, increment and allow
- * 4. If over limit, reject with retry-after header
- * 
- * WHY SLIDING WINDOW:
- * - More accurate than fixed window
- * - Prevents burst attacks at window boundaries
- * - Simple to implement with KV
- * 
- * EDGE CASES HANDLED:
- * - KV read/write failures (fail open for availability)
- * - Clock skew (use consistent time source)
- * - Concurrent requests (KV atomic operations)
+ * The Durable Object owns the fixed-window counter and updates it inside a
+ * storage transaction. Infrastructure failures fail open for availability and
+ * are logged so production monitoring can catch the protection gap.
  */
 export class RateLimiter {
   private env: Env;
   private config: RateLimitConfig;
+  private configName: string;
 
   constructor(env: Env, configName: string = 'mcp') {
     this.env = env;
-    this.config = DEFAULT_CONFIGS[configName] || DEFAULT_CONFIGS.mcp!;
+    this.configName = DEFAULT_CONFIGS[configName] ? configName : 'mcp';
+    this.config = DEFAULT_CONFIGS[this.configName]!;
   }
 
   /**
@@ -121,52 +102,33 @@ export class RateLimiter {
    */
   async checkLimit(clientId: string): Promise<RateLimitResult> {
     const now = Date.now();
-    const currentWindow = Math.floor(now / (this.config.windowSeconds * 1000));
-    const key = `rate_limit:${clientId}:${currentWindow}`;
 
     try {
-      // Read current count from KV
-      const currentCountStr = await this.env.RATE_LIMIT_KV?.get(key);
-      const currentCount = currentCountStr ? parseInt(currentCountStr, 10) : 0;
-
-      // Check if limit exceeded
-      if (currentCount >= this.config.maxRequests) {
-        const resetAt = (currentWindow + 1) * this.config.windowSeconds;
-        const retryAfter = resetAt - Math.floor(now / 1000);
-
-        return {
-          allowed: false,
-          remaining: 0,
-          limit: this.config.maxRequests,
-          resetAt,
-          retryAfter
-        };
-      }
-
-      // Increment counter
-      // WHY expirationTtl:
-      // Automatically clean up old rate limit data to prevent KV bloat
-      // Add extra 60 seconds buffer to handle clock skew
-      const newCount = currentCount + 1;
-      const expirationTtl = this.config.windowSeconds + 60;
-      
-      await this.env.RATE_LIMIT_KV?.put(
-        key,
-        newCount.toString(),
-        { expirationTtl }
+      const id = this.env.SECURITY_STATE.idFromName(
+        `rate-limit:${this.configName}:${clientId}`
+      );
+      const response = await this.env.SECURITY_STATE.get(id).fetch(
+        'https://security-state/rate-limit',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            now,
+            maxRequests: this.config.maxRequests,
+            windowSeconds: this.config.windowSeconds
+          })
+        }
       );
 
-      const resetAt = (currentWindow + 1) * this.config.windowSeconds;
-      return {
-        allowed: true,
-        remaining: this.config.maxRequests - newCount,
-        limit: this.config.maxRequests,
-        resetAt
-      };
+      if (!response.ok) {
+        throw new Error(`SecurityState returned ${response.status}`);
+      }
+
+      return response.json<RateLimitResult>();
     } catch (error) {
-      // IMPORTANT: Fail open on KV errors
+      // IMPORTANT: Fail open on coordination errors
       // WHY: Availability over strict rate limiting
-      // If KV is down, we'd rather serve requests than block all traffic
+      // If coordination is down, we'd rather serve requests than block traffic
       // Log the error for monitoring/alerting
       console.error('Rate limiter error:', error);
       

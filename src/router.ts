@@ -1,8 +1,13 @@
 import { Env, AuthSession } from './types';
 import { OAuthHandler } from './oauth-handler';
 import { AuthManager, AuthError } from './auth';
-import { MetroMcpAgent, Props } from './mcp-agent';
+import type { Props } from './mcp-agent';
 import { getServerInfo } from './server-info';
+import {
+  applyRateLimit,
+  createRateLimitResponse,
+  RateLimitResult
+} from './middleware/rate-limiter';
 
 export class Router {
   private oauthHandler = new OAuthHandler();
@@ -21,23 +26,16 @@ export class Router {
     const url = new URL(request.url);
     
     // Rate limiting check
-    const rateLimitResult = await this.checkRateLimit(request, env);
+    const endpointType = ['/authorize', '/token', '/register', '/callback'].includes(url.pathname)
+      ? 'oauth'
+      : (url.pathname === '/mcp' || url.pathname.startsWith('/sse'))
+        ? 'mcp'
+        : 'static';
+    const rateLimitResult = await this.checkRateLimit(request, env, endpointType);
     if (!rateLimitResult.allowed) {
-      return this.oauthHandler.addSecurityHeaders(new Response(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id: null,
-          error: {
-            code: -32603,
-            message: 'Too Many Requests',
-            data: 'Rate limit exceeded. Please try again later.'
-          }
-        }), 
-        { 
-          status: 429,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      ));
+      return this.oauthHandler.addSecurityHeaders(
+        createRateLimitResponse(rateLimitResult, endpointType === 'mcp')
+      );
     }
     
     // Handle CORS preflight
@@ -59,7 +57,7 @@ export class Router {
         resource: `${baseUrl}${resourcePath}`,
         authorization_servers: [baseUrl],
         scopes_supported: ['profile'],
-        bearer_methods_supported: ['header', 'query']
+        bearer_methods_supported: ['header']
       }, null, 2), {
         headers: {
           'Content-Type': 'application/json',
@@ -76,10 +74,10 @@ export class Router {
         authorization_endpoint: `${baseUrl}/authorize`,
         token_endpoint: `${baseUrl}/token`,
         registration_endpoint: `${baseUrl}/register`,
-        grant_types_supported: ['authorization_code', 'refresh_token'],
+        grant_types_supported: ['authorization_code'],
         response_types_supported: ['code'],
         code_challenge_methods_supported: ['S256'],
-        token_endpoint_auth_methods_supported: ['none', 'client_secret_post', 'client_secret_basic'],
+        token_endpoint_auth_methods_supported: ['none'],
         scopes_supported: ['profile'],
         // RFC 8707 — declare that this server understands the `resource` parameter
         // and issues audience-bound tokens when it is provided.
@@ -194,6 +192,7 @@ export class Router {
     // serves Streamable HTTP (POST <pathname>) AND legacy SSE (GET <pathname>
     // + POST <pathname>/message) from the same mount, so legacy clients that
     // hardcode /sse keep working alongside modern Streamable HTTP clients.
+    const { MetroMcpAgent } = await import('./mcp-agent');
     const handler = MetroMcpAgent.serve(pathname, {
       binding: 'MCP_SESSION',
       transport: 'auto'
@@ -234,17 +233,12 @@ export class Router {
     return this.oauthHandler.addSecurityHeaders(response);
   }
 
-  async checkRateLimit(_request: Request, _env: Env): Promise<{allowed: boolean, remaining: number}> {
-    // Simple rate limiting: 100 requests per minute per IP
-    // In production, you'd use Cloudflare KV or Durable Objects for rate limiting
-    // You would get clientIP and create a key like: `rate_limit:${clientIP}:${Math.floor(Date.now() / 60000)}`
-    const maxRequestsPerMinute = 100;
-    
-    // For now, we'll allow all requests but add the structure for future implementation
-    return {
-      allowed: true,
-      remaining: maxRequestsPerMinute
-    };
+  async checkRateLimit(
+    request: Request,
+    env: Env,
+    endpointType: 'oauth' | 'mcp' | 'static' = 'mcp'
+  ): Promise<RateLimitResult> {
+    return applyRateLimit(request, env, endpointType);
   }
 
   async authenticateRequest(request: Request, env: Env): Promise<{authenticated: boolean, session?: AuthSession, error?: string}> {

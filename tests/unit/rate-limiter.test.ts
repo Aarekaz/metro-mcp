@@ -5,7 +5,7 @@
  * Rate limiting is a critical security feature. These tests verify:
  * 1. Limits are enforced correctly
  * 2. Sliding window algorithm works
- * 3. KV operations are handled properly
+ * 3. Concurrent Durable Object updates are enforced correctly
  * 4. Error handling fails open (availability over strict limiting)
  * 5. Rate limit headers are correct
  */
@@ -100,12 +100,13 @@ describe('RateLimiter', () => {
       expect(resultB.allowed).toBe(true);
     });
 
-    it('should fail open on KV errors', async () => {
-      // Create env with broken KV
-      const brokenEnv = createMockEnv();
-      if (brokenEnv.RATE_LIMIT_KV) {
-        brokenEnv.RATE_LIMIT_KV.get = vi.fn().mockRejectedValue(new Error('KV error'));
-      }
+    it('should fail open on coordination errors', async () => {
+      const brokenEnv = createMockEnv({
+        SECURITY_STATE: {
+          idFromName: () => 'broken-id',
+          get: () => { throw new Error('Durable Object error'); }
+        } as any
+      });
 
       const limiter = new RateLimiter(brokenEnv, 'mcp');
       const result = await limiter.checkLimit('test-client');
@@ -114,18 +115,14 @@ describe('RateLimiter', () => {
       expect(result.allowed).toBe(true);
     });
 
-    it('should set correct expiration TTL', async () => {
+    it('should enforce the limit across concurrent requests', async () => {
       const limiter = new RateLimiter(env, 'mcp');
-      const putSpy = vi.spyOn(env.RATE_LIMIT_KV!, 'put');
-
-      await limiter.checkLimit('test-client');
-
-      // Verify put was called with correct TTL (60s window + 60s buffer)
-      expect(putSpy).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        { expirationTtl: 120 }
+      const results = await Promise.all(
+        Array.from({ length: 120 }, () => limiter.checkLimit('concurrent-client'))
       );
+
+      expect(results.filter(result => result.allowed)).toHaveLength(100);
+      expect(results.filter(result => !result.allowed)).toHaveLength(20);
     });
   });
 

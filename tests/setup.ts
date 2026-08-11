@@ -94,6 +94,90 @@ function createMockDONamespace(): DurableObjectNamespace {
   }) as unknown as DurableObjectNamespace;
 }
 
+export function createMockSecurityStateNamespace(): DurableObjectNamespace {
+  const objects = new Map<string, {
+    oauthCode?: string;
+    rateLimit?: { window: number; count: number };
+  }>();
+
+  return {
+    idFromName(name: string) {
+      return name as unknown as DurableObjectId;
+    },
+    get(id: DurableObjectId) {
+      const name = String(id);
+      const state = objects.get(name) || {};
+      objects.set(name, state);
+
+      return {
+        async fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+          const request = input instanceof Request ? input : new Request(input, init);
+          const path = new URL(request.url).pathname;
+
+          if (path === '/oauth-code' && request.method === 'PUT') {
+            state.oauthCode = await request.text();
+            return new Response(null, { status: 204 });
+          }
+
+          if (path === '/oauth-code/consume' && request.method === 'POST') {
+            if (!state.oauthCode) return new Response(null, { status: 404 });
+            const credentials = await request.json() as { clientId: string; codeChallenge: string };
+            const record = JSON.parse(state.oauthCode) as {
+              clientId: string;
+              codeChallenge: string;
+              expiresAt: number;
+            };
+            if (record.expiresAt < Date.now()) {
+              delete state.oauthCode;
+              return new Response(null, { status: 404 });
+            }
+            if (
+              record.clientId !== credentials.clientId ||
+              record.codeChallenge !== credentials.codeChallenge
+            ) {
+              return new Response(null, { status: 403 });
+            }
+            const stored = state.oauthCode;
+            delete state.oauthCode;
+            return new Response(stored, {
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
+
+          if (path === '/rate-limit' && request.method === 'POST') {
+            const body = await request.json() as {
+              now: number;
+              maxRequests: number;
+              windowSeconds: number;
+            };
+            const window = Math.floor(body.now / (body.windowSeconds * 1000));
+            const count = state.rateLimit?.window === window ? state.rateLimit.count : 0;
+            const resetAt = (window + 1) * body.windowSeconds;
+            if (count >= body.maxRequests) {
+              return Response.json({
+                allowed: false,
+                remaining: 0,
+                limit: body.maxRequests,
+                resetAt,
+                retryAfter: Math.max(1, resetAt - Math.floor(body.now / 1000))
+              });
+            }
+            state.rateLimit = { window, count: count + 1 };
+            return Response.json({
+              allowed: true,
+              remaining: body.maxRequests - state.rateLimit.count,
+              limit: body.maxRequests,
+              resetAt
+            });
+          }
+
+          return new Response(null, { status: 404 });
+        }
+      } as DurableObjectStub;
+    }
+  } as unknown as DurableObjectNamespace;
+}
+
 export function createMockEnv(overrides: Partial<Env> = {}): Env {
   return {
     GITHUB_CLIENT_ID: 'test-client-id',
@@ -102,8 +186,8 @@ export function createMockEnv(overrides: Partial<Env> = {}): Env {
     WMATA_API_KEY: 'test-wmata-key',
     JWT_SECRET: 'test-jwt-secret-at-least-32-characters-long',
     OAUTH_CLIENTS: createMockKV(),
-    RATE_LIMIT_KV: createMockKV(),
     MCP_SESSION: createMockDONamespace(),
+    SECURITY_STATE: createMockSecurityStateNamespace(),
     ASSETS: { fetch: vi.fn() } as unknown as Fetcher,
     ENVIRONMENT: 'test',
     ...overrides,

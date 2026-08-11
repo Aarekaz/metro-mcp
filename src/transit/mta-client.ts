@@ -53,14 +53,15 @@ interface CachedFeed {
   timestamp: number;
 }
 
-export class MTAClient extends TransitAPIClient {
-  private feedCache: Map<keyof typeof MTA_FEEDS, CachedFeed>;
-  private cacheTTL: number;
+// Module-scoped so cache entries survive the short-lived client objects created
+// by individual MCP tool and resource handlers within the same Worker isolate.
+const FEED_CACHE = new Map<keyof typeof MTA_FEEDS, CachedFeed>();
+const FEED_CACHE_TTL_MS = 30_000;
+const ARRIVAL_GRACE_SECONDS = 60;
 
+export class MTAClient extends TransitAPIClient {
   constructor() {
     super('nyc'); // No API key needed for MTA public feeds
-    this.feedCache = new Map();
-    this.cacheTTL = 30000; // 30 seconds per GTFS-realtime spec
   }
 
   /**
@@ -70,8 +71,8 @@ export class MTAClient extends TransitAPIClient {
     feedKey: keyof typeof MTA_FEEDS
   ): Promise<GtfsRealtimeBindings.transit_realtime.FeedMessage> {
     // Check cache
-    const cached = this.feedCache.get(feedKey);
-    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+    const cached = FEED_CACHE.get(feedKey);
+    if (cached && Date.now() - cached.timestamp < FEED_CACHE_TTL_MS) {
       return cached.data;
     }
 
@@ -90,7 +91,7 @@ export class MTAClient extends TransitAPIClient {
     );
 
     // Cache the parsed feed
-    this.feedCache.set(feedKey, {
+    FEED_CACHE.set(feedKey, {
       data: feed,
       timestamp: Date.now(),
     });
@@ -111,14 +112,13 @@ export class MTAClient extends TransitAPIClient {
    * Get real-time train predictions for a station
    */
   async getStationPredictions(stationId: string): Promise<TransitPrediction[]> {
-    const predictions: TransitPrediction[] = [];
-
-    // Determine which feeds to check based on the station
-    // For now, we'll check all feeds (in production, optimize this)
     const feedsToCheck = Object.keys(MTA_FEEDS) as (keyof typeof MTA_FEEDS)[];
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const requestedBaseId = stationId.replace(/[NS]$/, '');
 
-    for (const feedKey of feedsToCheck) {
-      try {
+    const feedResults = await Promise.allSettled(
+      feedsToCheck.map(async feedKey => {
+        const predictions: TransitPrediction[] = [];
         const feed = await this.fetchFeed(feedKey);
 
         for (const entity of feed.entity) {
@@ -129,41 +129,65 @@ export class MTAClient extends TransitAPIClient {
 
           if (!trip || !tripUpdate.stopTimeUpdate) continue;
 
-          // Find stop time updates for this station
+          const lastStopId = [...tripUpdate.stopTimeUpdate]
+            .reverse()
+            .find(update => update.stopId)?.stopId;
+          const destinationId = lastStopId?.replace(/[NS]$/, '');
+          const destination = destinationId
+            ? NYC_STATIONS.find(station => station.id === destinationId)?.name || lastStopId || 'Unknown'
+            : 'Unknown';
+
           for (const stopTimeUpdate of tripUpdate.stopTimeUpdate) {
-            // Match station ID (handling directional suffixes like "127N", "127S")
             const stopId = stopTimeUpdate.stopId || '';
             const baseStopId = stopId.replace(/[NS]$/, '');
+            const stationMatches = stationId === requestedBaseId
+              ? baseStopId === requestedBaseId
+              : stopId === stationId;
 
-            if (baseStopId === stationId || stopId === stationId) {
+            if (stationMatches) {
               const arrivalTime = stopTimeUpdate.arrival?.time;
               if (!arrivalTime) continue;
 
-              // Calculate minutes away
-              const arrivalDate = new Date(Number(arrivalTime) * 1000);
-              const now = new Date();
-              const minutesAway = Math.floor((arrivalDate.getTime() - now.getTime()) / 60000);
+              const arrivalSeconds = Number(arrivalTime);
+              const secondsAway = arrivalSeconds - nowSeconds;
+              if (secondsAway < -ARRIVAL_GRACE_SECONDS) continue;
 
-              // Determine direction from stop_id suffix
+              const arrivalDate = new Date(arrivalSeconds * 1000);
+              const minutesAway = secondsAway <= ARRIVAL_GRACE_SECONDS
+                ? 'ARR'
+                : Math.floor(secondsAway / 60);
+
               const direction = stopId.endsWith('N') ? 'NORTH' : stopId.endsWith('S') ? 'SOUTH' : undefined;
 
               predictions.push({
                 city: 'nyc',
                 line: trip.routeId || '',
-                destination: stopTimeUpdate.stopId || 'Unknown',
+                destination,
                 arrivalTime: arrivalDate.toISOString(),
-                minutesAway: minutesAway <= 0 ? 'ARR' : minutesAway,
+                minutesAway,
                 direction,
               });
             }
           }
         }
-      } catch (error) {
-        // Log error but continue with other feeds to provide partial results
-        // In production, this would be sent to Cloudflare's logging/observability
-        // Continue with other feeds
-      }
+
+        return predictions;
+      })
+    );
+
+    const successfulFeeds = feedResults.filter(
+      (result): result is PromiseFulfilledResult<TransitPrediction[]> => result.status === 'fulfilled'
+    );
+    if (successfulFeeds.length === 0) {
+      throw new Error('All MTA real-time feeds are unavailable');
     }
+
+    const failedFeedCount = feedResults.length - successfulFeeds.length;
+    if (failedFeedCount > 0) {
+      console.warn(`MTA predictions are partial: ${failedFeedCount} feed(s) failed`);
+    }
+
+    const predictions = successfulFeeds.flatMap(result => result.value);
 
     // Sort by arrival time
     predictions.sort((a, b) => {
@@ -182,61 +206,56 @@ export class MTAClient extends TransitAPIClient {
   async getIncidents(): Promise<TransitIncident[]> {
     const incidents: TransitIncident[] = [];
 
-    try {
-      // Fetch from dedicated alerts feed (JSON format, faster than protobuf)
-      const response = await fetch(
-        'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/camsys%2Fsubway-alerts.json'
-      );
+    // Fetch from dedicated alerts feed (JSON format, faster than protobuf)
+    const response = await fetch(
+      'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/camsys%2Fsubway-alerts.json'
+    );
 
-      if (!response.ok) {
-        throw new Error(`MTA alerts fetch failed: ${response.status}`);
-      }
+    if (!response.ok) {
+      throw new Error(`MTA alerts fetch failed: ${response.status}`);
+    }
 
-      const data = await response.json() as any;
+    const data = await response.json() as any;
 
-      for (const entity of data.entity || []) {
-        if (!entity.alert) continue;
+    for (const entity of data.entity || []) {
+      if (!entity.alert) continue;
 
-        const alert = entity.alert;
+      const alert = entity.alert;
 
-        // Extract affected lines from informed_entity
-        const linesAffected: string[] = [];
-        if (alert.informed_entity) {
-          for (const informed of alert.informed_entity) {
-            if (informed.route_id) {
-              linesAffected.push(informed.route_id);
-            }
+      // Extract affected lines from informed_entity
+      const linesAffected: string[] = [];
+      if (alert.informed_entity) {
+        for (const informed of alert.informed_entity) {
+          if (informed.route_id) {
+            linesAffected.push(informed.route_id);
           }
         }
-
-        // Get plain text description (prefer over HTML)
-        const description =
-          alert.header_text?.translation?.find((t: any) => t.language === 'en')?.text ||
-          alert.header_text?.translation?.[0]?.text ||
-          'Service alert';
-
-        // Get alert type from mercury extensions
-        const alertType = alert['transit_realtime.mercury_alert']?.alert_type || 'Alert';
-
-        // Get timestamp from mercury extensions
-        const updatedAt = alert['transit_realtime.mercury_alert']?.updated_at;
-        const timestamp = updatedAt
-          ? new Date(updatedAt * 1000).toISOString()
-          : new Date().toISOString();
-
-        incidents.push({
-          city: 'nyc',
-          incidentId: entity.id,
-          description,
-          linesAffected: [...new Set(linesAffected)], // Remove duplicates
-          severity: alertType, // Use alert_type as severity (Delays, Service Change, etc.)
-          incidentType: alertType,
-          timestamp,
-        });
       }
-    } catch (error) {
-      // If alerts feed fails, return empty array rather than breaking the whole request
-      // In production, this would be sent to Cloudflare's logging/observability
+
+      // Get plain text description (prefer over HTML)
+      const description =
+        alert.header_text?.translation?.find((t: any) => t.language === 'en')?.text ||
+        alert.header_text?.translation?.[0]?.text ||
+        'Service alert';
+
+      // Get alert type from mercury extensions
+      const alertType = alert['transit_realtime.mercury_alert']?.alert_type || 'Alert';
+
+      // Get timestamp from mercury extensions
+      const updatedAt = alert['transit_realtime.mercury_alert']?.updated_at;
+      const timestamp = updatedAt
+        ? new Date(updatedAt * 1000).toISOString()
+        : new Date().toISOString();
+
+      incidents.push({
+        city: 'nyc',
+        incidentId: entity.id,
+        description,
+        linesAffected: [...new Set(linesAffected)], // Remove duplicates
+        severity: alertType, // Use alert_type as severity (Delays, Service Change, etc.)
+        incidentType: alertType,
+        timestamp,
+      });
     }
 
     return incidents;

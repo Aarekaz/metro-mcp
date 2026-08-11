@@ -602,7 +602,10 @@ export class MetroMcpAgent extends McpAgent<Env, unknown, Props> {
         description: 'Get real-time bus arrival predictions for a DC Metro bus stop.',
         annotations: READ_ONLY_LIVE,
         inputSchema: {
-          stopId: z.string().describe('DC Metro 7-digit regional bus stop ID (e.g., "1001195")')
+          stopId: z
+            .string()
+            .regex(/^\d{7}$/, 'DC Metro bus stop IDs must contain exactly 7 digits')
+            .describe('DC Metro 7-digit regional bus stop ID (e.g., "1001195")')
         },
         outputSchema: {
           city: z.literal('dc'),
@@ -687,9 +690,9 @@ export class MetroMcpAgent extends McpAgent<Env, unknown, Props> {
           'Get DC Metro bus stops. Returns all stops or filters by lat/lon/radius.',
         annotations: READ_ONLY_LIVE,
         inputSchema: {
-          latitude: z.number().optional().describe('Center latitude for geographic search'),
-          longitude: z.number().optional().describe('Center longitude for geographic search'),
-          radius: z.number().optional().describe('Search radius in meters')
+          latitude: z.number().min(-90).max(90).optional().describe('Center latitude for geographic search'),
+          longitude: z.number().min(-180).max(180).optional().describe('Center longitude for geographic search'),
+          radius: z.number().positive().max(50_000).optional().describe('Search radius in meters')
         },
         outputSchema: {
           city: z.literal('dc'),
@@ -713,6 +716,12 @@ export class MetroMcpAgent extends McpAgent<Env, unknown, Props> {
       },
       async ({ latitude, longitude, radius }) =>
         withTransitErrors(async () => {
+          if ((latitude === undefined) !== (longitude === undefined)) {
+            throw new Error('latitude and longitude must be provided together');
+          }
+          if (radius !== undefined && latitude === undefined) {
+            throw new Error('radius requires latitude and longitude');
+          }
           const client = getTransitClient('dc', this.env) as WMATAClient;
           const stops = await client.getBusStops(latitude, longitude, radius);
           const structured = {
