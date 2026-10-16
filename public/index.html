@@ -3,46 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>metro-mcp · Plug your LLM into the subway</title>
+  <title>Transit MCP · Plug your LLM into the subway</title>
   <meta name="description" content="Anonymous, read-only access to live DC Metro and NYC Subway data for any MCP client.">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
   <!-- Open Graph / Twitter -->
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="metro-mcp">
-  <meta property="og:url" content="https://metro-mcp.anuragd.me/">
-  <meta property="og:title" content="metro-mcp · Plug your LLM into the subway">
+  <meta property="og:site_name" content="Transit MCP">
+  <meta property="og:url" content="https://transitmcp.com/">
+  <meta property="og:title" content="Transit MCP · Plug your LLM into the subway">
   <meta property="og:description" content="Anonymous, read-only access to live DC Metro and NYC Subway data via the Model Context Protocol.">
-  <meta property="og:image" content="https://metro-mcp.anuragd.me/og-image.png">
+  <meta property="og:image" content="https://transitmcp.com/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://metro-mcp.anuragd.me/">
-  <meta property="twitter:title" content="metro-mcp · Plug your LLM into the subway">
+  <meta property="twitter:url" content="https://transitmcp.com/">
+  <meta property="twitter:title" content="Transit MCP · Plug your LLM into the subway">
   <meta property="twitter:description" content="Anonymous, read-only access to live DC Metro and NYC Subway data via the Model Context Protocol.">
-  <meta property="twitter:image" content="https://metro-mcp.anuragd.me/og-image.png">
+  <meta property="twitter:image" content="https://transitmcp.com/og-image.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     /* ─── Design tokens ─────────────────────────────────────── */
     :root {
       --bg: #fafbfc;
       --ink: #0a2540;
-      --ink-2: #5b6470;
-      --ink-3: #8a93a0;
+      --ink-2: #4f5b69;
+      --ink-3: #7d8794;
       --border: #e6e8eb;
+      --hairline: rgba(10, 37, 64, 0.1);
       --accent: #ff6b1a;
+      /* Deeper orange for text so the accent word clears large-text contrast. */
+      --accent-text: #e2540a;
       --surface: #ffffff;
+
+      /* Transit line colors — used only as small, non-text details. */
+      --line-red: #ee352e;
+      --line-blue: #009cde;
+      --line-green: #00933c;
+      --line-yellow: #fcd000;
 
       --radius-pill: 999px;
       --radius-card: 12px;
       --radius-input: 8px;
 
       --shadow-modal: 0 24px 60px rgba(10, 37, 64, 0.18);
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
       --font-ui: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --font-display: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
       --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
     }
 
@@ -139,7 +151,8 @@
       white-space: nowrap;
       transition: filter 120ms ease;
     }
-    nav .cta-pill:hover { filter: brightness(1.15); }
+    nav .cta-pill:hover { filter: brightness(1.18); }
+    nav .wordmark .wordmark-dim { color: var(--ink-3); font-weight: 500; }
 
     @media (max-width: 560px) {
       nav {
@@ -180,7 +193,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 48px 24px 28px;
+      padding: 36px 24px 28px;
       overflow: hidden;
       min-height: calc(100vh - 64px - 40px - 480px);
       background: var(--bg);
@@ -256,9 +269,8 @@
       font-size: 11px;
       color: rgba(10, 37, 64, 0.78);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin: 0 0 14px;
-      font-weight: 700;
+      letter-spacing: 0.14em;
+      font-weight: 600;
       text-shadow: 0 1px 0 rgba(255, 255, 255, 0.74);
     }
 
@@ -271,12 +283,13 @@
       max-width: 760px;
       margin: 0 auto;
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
+      border: 1px solid rgba(10, 37, 64, 0.09);
+      border-radius: 16px;
       overflow: hidden;
       box-shadow:
-        0 24px 50px rgba(10, 37, 64, 0.08),
-        0 2px 6px rgba(10, 37, 64, 0.03);
+        0 0 0 6px rgba(255, 255, 255, 0.5),
+        0 30px 60px -20px rgba(10, 37, 64, 0.22),
+        0 2px 6px rgba(10, 37, 64, 0.04);
     }
 
     .chat-head {
@@ -285,10 +298,11 @@
       align-items: center;
       gap: 10px;
       padding: 12px 16px;
-      background: var(--bg);
+      background: linear-gradient(180deg, #fff, var(--bg));
       border-bottom: 1px solid var(--border);
       font-size: 12px;
     }
+    .chat-title { font-family: var(--font-mono); font-weight: 500; font-size: 12px; }
     .dot-live {
       width: 8px;
       height: 8px;
@@ -301,7 +315,6 @@
       0%, 100% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
       50%      { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.06); }
     }
-    .chat-title { font-weight: 600; }
     .chat-meta { color: var(--ink-3); }
     .chat-spacer { flex: 1; }
     .chat-replay {
@@ -488,19 +501,67 @@
       .chat-dots { padding-bottom: 14px; }
     }
 
-    .hero h1 {
-      font-size: clamp(36px, 5.5vw, 56px);
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      line-height: 1.05;
+    /* Status eyebrow — live dot + the one usage stat. */
+    .hero-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 14px 5px 10px;
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-pill);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 1px 2px rgba(10, 37, 64, 0.04);
+      font-size: 12.5px;
+      color: var(--ink-2);
+      white-space: nowrap;
     }
-    .hero h1 .accent { color: var(--accent); }
+    .hero-status .status-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .hero-status .dot-live { width: 7px; height: 7px; }
+    .hero-status .status-sep {
+      width: 1px;
+      height: 12px;
+      background: var(--hairline);
+    }
+    .hero-status .stat {
+      font-variant-numeric: tabular-nums;
+    }
+    .hero-status .stat strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(40px, 6vw, 68px);
+      font-weight: 600;
+      letter-spacing: -0.035em;
+      line-height: 1;
+      text-wrap: balance;
+    }
+    .hero h1 .accent {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: 1.12em;
+      letter-spacing: -0.01em;
+      color: var(--accent-text);
+      padding-right: 0.04em;
+    }
 
     .hero .subtitle {
-      max-width: 560px;
-      font-size: clamp(15px, 1.4vw, 17px);
-      line-height: 1.55;
+      max-width: 540px;
+      font-size: clamp(15.5px, 1.4vw, 17.5px);
+      line-height: 1.6;
       color: var(--ink-2);
+      text-wrap: pretty;
     }
 
     .hero .footnote {
@@ -508,10 +569,10 @@
       align-items: center;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 6px 8px;
+      gap: 6px 10px;
       font-size: 13px;
       color: var(--ink-3);
-      margin-top: 4px;
+      margin-top: 6px;
     }
     .compat-examples {
       display: inline-flex;
@@ -603,6 +664,13 @@
     }
 
     /* ─── CTA row ───────────────────────────────────────────── */
+    .cta-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
     .cta-row {
       display: flex;
       gap: 8px;
@@ -614,37 +682,155 @@
       display: inline-flex;
       align-items: center;
       gap: 12px;
+      min-height: 46px;
       background: var(--surface);
       border: 1px solid var(--border);
-      padding: 10px 16px;
+      padding: 0 8px 0 18px;
       border-radius: var(--radius-pill);
       font-family: var(--font-mono);
       font-size: 14px;
       color: var(--ink);
-      transition: border-color 120ms ease, transform 120ms ease;
+      box-shadow: 0 1px 2px rgba(10, 37, 64, 0.04), 0 8px 24px -12px rgba(10, 37, 64, 0.18);
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
     }
-    .url-pill:hover { border-color: var(--ink-2); }
+    .url-pill .url-scheme { color: var(--ink-3); }
+    .url-pill:hover {
+      border-color: rgba(10, 37, 64, 0.28);
+      box-shadow: 0 1px 2px rgba(10, 37, 64, 0.04), 0 12px 28px -12px rgba(10, 37, 64, 0.26);
+    }
     .url-pill:active { transform: translateY(1px); }
     .url-pill .url-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-family: var(--font-ui);
       font-size: 12px;
-      color: var(--ink-3);
-      padding-left: 12px;
-      border-left: 1px solid var(--border);
+      font-weight: 500;
+      color: var(--ink-2);
+      padding: 6px 11px;
+      border-radius: var(--radius-pill);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
     }
-    .url-pill[data-copied="true"] .url-status { color: var(--accent); }
+    .url-pill:hover .url-status { color: var(--ink); }
+    .url-pill[data-copied="true"] .url-status {
+      color: #047857;
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+    }
 
     .cta-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 46px;
       background: var(--ink);
       color: #fff;
-      padding: 10px 18px;
+      padding: 0 20px 0 22px;
       border-radius: var(--radius-pill);
       font-size: 14px;
       font-weight: 500;
-      transition: filter 120ms ease, transform 120ms ease;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset, 0 10px 24px -10px rgba(10, 37, 64, 0.55);
+      transition: filter 160ms ease, transform 120ms ease;
     }
-    .cta-button:hover { filter: brightness(1.15); }
+    .cta-button .cta-arrow {
+      transition: transform 200ms var(--ease-out);
+    }
+    .cta-button:hover { filter: brightness(1.18); }
+    .cta-button:hover .cta-arrow { transform: translateX(3px); }
     .cta-button:active { transform: translateY(1px); }
+
+    /* ChatGPT plugin — secondary primary path, sits right under the URL. */
+    .plugin-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 14px 7px 8px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--hairline);
+      background: rgba(255, 255, 255, 0.66);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      font-size: 13px;
+      color: var(--ink-2);
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms var(--ease-out);
+    }
+    .plugin-link .plugin-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+    .plugin-link .plugin-mark img { width: 14px; height: 14px; display: block; }
+    .plugin-link strong { color: var(--ink); font-weight: 600; }
+    .plugin-link .plugin-arrow {
+      color: var(--ink-3);
+      transition: transform 200ms var(--ease-out), color 160ms ease;
+    }
+    .plugin-link:hover {
+      border-color: rgba(10, 37, 64, 0.24);
+      background: rgba(255, 255, 255, 0.92);
+      transform: translateY(-1px);
+    }
+    .plugin-link:hover .plugin-arrow {
+      color: var(--ink);
+      transform: translate(2px, -2px);
+    }
+
+    /* Route-line rule: a thin track with five stops in line colors. */
+    .route-rule {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin: 0 auto 16px;
+      max-width: 760px;
+    }
+    .route-rule::before,
+    .route-rule::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(10, 37, 64, 0.22));
+    }
+    .route-rule::after { background: linear-gradient(90deg, rgba(10, 37, 64, 0.22), transparent); }
+    .route-stops {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .route-stops i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--c);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+    }
+
+    /* Load-in: hero pieces rise in a short stagger. */
+    .rise {
+      opacity: 0;
+      transform: translateY(10px);
+      animation: rise 700ms var(--ease-out) forwards;
+      animation-delay: calc(var(--i, 0) * 70ms + 60ms);
+    }
+    @keyframes rise {
+      to { opacity: 1; transform: none; }
+    }
+
+    @media (max-width: 560px) {
+      .hero { gap: 18px; }
+      .hero-status { font-size: 12px; gap: 8px; }
+      .url-pill { min-height: 44px; padding-left: 16px; }
+      .url-pill .url-scheme { display: none; }
+      .cta-button { min-height: 44px; }
+      .plugin-link { font-size: 12.5px; }
+    }
 
     /* ─── Footer ────────────────────────────────────────────── */
     footer {
@@ -660,7 +846,7 @@
       flex-wrap: wrap;
       font-size: 13px;
       color: var(--ink);
-      font-weight: 700;
+      font-weight: 600;
       text-shadow: 0 1px 1px rgba(255, 255, 255, 0.86);
     }
     @media (min-width: 720px) {
@@ -692,11 +878,12 @@
     .footer-action {
       min-height: 30px;
       padding: 5px 11px;
-      border: 1px solid rgba(10, 37, 64, 0.22);
+      border: 1px solid rgba(10, 37, 64, 0.16);
       border-radius: var(--radius-pill);
       background: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 5px 14px rgba(10, 37, 64, 0.11), 0 1px 0 rgba(255, 255, 255, 0.92) inset;
-      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(10, 37, 64, 0.08), 0 1px 0 rgba(255, 255, 255, 0.92) inset;
+      font-size: 12.5px;
+      font-weight: 600;
     }
     .footer-action:hover {
       border-color: rgba(10, 37, 64, 0.34);
@@ -871,6 +1058,10 @@
     @media (prefers-reduced-motion: reduce) {
       dialog#install-dialog[open] { animation: none; }
       #toast { transition: none; }
+      .rise { animation: none; opacity: 1; transform: none; }
+      .cta-button .cta-arrow,
+      .plugin-link,
+      .plugin-link .plugin-arrow { transition: none; }
     }
   </style>
 </head>
@@ -878,7 +1069,7 @@
   <nav aria-label="Primary">
     <a class="brand" href="/">
       <img class="brand-icon" src="/metro-mcp-slick.svg" alt="" width="24" height="24">
-      <span class="wordmark">metro-mcp</span>
+      <span class="wordmark">transit<span class="wordmark-dim">-mcp</span></span>
     </a>
     <div class="nav-links">
       <a href="/docs/">Docs</a>
@@ -895,16 +1086,28 @@
   <main>
     <section class="hero-section">
       <div class="hero">
-        <h1>Plug your LLM into the <span class="accent">subway</span>.</h1>
-        <p class="subtitle">Anonymous access to live DC Metro and NYC Subway arrivals, incidents, and 598 stations. Read-only, with no account or client credentials required.</p>
-        <div class="cta-row">
-          <button type="button" class="url-pill" data-copy-url="https://metro-mcp.anuragd.me/mcp" aria-label="Copy MCP server URL">
-            <span class="url-text">metro-mcp.anuragd.me/mcp</span>
-            <span class="url-status" aria-hidden="true">Copy</span>
-          </button>
-          <button type="button" class="cta-button" data-open-install>Connect</button>
+        <p class="hero-status rise" style="--i:0">
+          <span class="status-live"><span class="dot-live" aria-hidden="true"></span>Live</span>
+          <span class="status-sep" aria-hidden="true"></span>
+          <span class="stat">~<strong>77K</strong> requests served weekly</span>
+        </p>
+        <h1 class="rise" style="--i:1">Plug your LLM into the <span class="accent">subway</span>.</h1>
+        <p class="subtitle rise" style="--i:2">Anonymous access to live DC Metro and NYC Subway arrivals, incidents, and 598 stations. Read-only, with no account or client credentials required.</p>
+        <div class="cta-stack rise" style="--i:3">
+          <div class="cta-row">
+            <button type="button" class="url-pill" data-copy-url="https://transitmcp.com/mcp" aria-label="Copy MCP server URL">
+              <span class="url-text"><span class="url-scheme">https://</span>transitmcp.com/mcp</span>
+              <span class="url-status" aria-hidden="true">Copy</span>
+            </button>
+            <button type="button" class="cta-button" data-open-install>Connect <span class="cta-arrow" aria-hidden="true">&rarr;</span></button>
+          </div>
+          <a class="plugin-link" href="https://chatgpt.com/plugins/plugin_asdk_app_6a9078f4d6dc8191be735cc1c2ff45b5" target="_blank" rel="noreferrer">
+            <span class="plugin-mark" aria-hidden="true"><img src="/client-openai.svg" alt="" width="14" height="14"></span>
+            <span>Also available as a <strong>ChatGPT plugin</strong></span>
+            <span class="plugin-arrow" aria-hidden="true">&nearr;</span>
+          </a>
         </div>
-        <p class="footnote">
+        <p class="footnote rise" style="--i:4">
           <span>Works with any MCP-compatible LLM/client</span>
           <span class="compat-examples" aria-label="Example clients">
             <span class="compat-item"><img class="compat-logo" src="/client-claude.svg" alt="" width="14" height="14">Claude</span>
@@ -913,7 +1116,7 @@
             <span class="compat-item"><img class="compat-logo" src="/client-gemini.svg" alt="" width="14" height="14">Gemini</span>
           </span>
         </p>
-        <div class="infra-strip" aria-label="Built on Cloudflare and official transit feeds">
+        <div class="infra-strip rise" style="--i:5" aria-label="Built on Cloudflare and official transit feeds">
           <a class="infra-chip" href="https://developers.cloudflare.com/workers/" target="_blank" rel="noreferrer" aria-label="Open Cloudflare Workers documentation">
             <svg class="infra-mark cloudflare-mark" viewBox="0 0 64 40" aria-hidden="true">
               <path fill="currentColor" d="M45.8 18.2c-.8-5.5-5.5-9.7-11.2-9.7-5.1 0-9.4 3.4-10.8 8.1a8.8 8.8 0 0 0-3.3-.6c-5.2 0-9.5 4-9.9 9.1H8.2C3.7 25.1 0 28.5 0 32.7 0 36.8 3.7 40 8.2 40h38.9c7.2 0 13-5.4 13-12.1 0-6.2-5-11.3-11.5-12a12 12 0 0 0-2.8 2.3Z"/>
@@ -935,11 +1138,19 @@
 
     <div class="action-band">
       <section class="chat-section" aria-hidden="true">
-        <p class="chat-label">See it in action</p>
+        <div class="route-rule">
+          <span class="route-stops" aria-hidden="true">
+            <i style="--c:var(--line-red)"></i><i style="--c:var(--accent)"></i><i style="--c:var(--line-yellow)"></i>
+          </span>
+          <p class="chat-label">See it in action</p>
+          <span class="route-stops" aria-hidden="true">
+            <i style="--c:var(--line-green)"></i><i style="--c:var(--line-blue)"></i><i style="--c:var(--ink)"></i>
+          </span>
+        </div>
         <div class="chat-panel">
           <div class="chat-head">
             <span class="dot-live"></span>
-            <span class="chat-title">metro-mcp</span>
+            <span class="chat-title">transit-mcp</span>
             <span class="chat-meta">&middot; connected to your LLM</span>
             <span class="chat-spacer"></span>
             <button type="button" class="chat-replay" data-replay aria-label="Replay current demo">&#8635;</button>
@@ -979,7 +1190,7 @@
   <dialog id="install-dialog" aria-labelledby="install-title">
     <div class="dialog-inner">
       <header class="dialog-header">
-        <h2 id="install-title">Add metro-mcp to your MCP client</h2>
+        <h2 id="install-title">Add Transit MCP to your MCP client</h2>
         <button type="button" class="dialog-close" data-close-install aria-label="Close">×</button>
       </header>
       <p class="dialog-subtitle">Paste the snippet for your client. No login is required; no client token or OAuth flow is required.</p>
@@ -995,8 +1206,8 @@
         <p class="tab-help">Add to <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></p>
         <pre><code>{
   "mcpServers": {
-    "metro-mcp": {
-      "url": "https://metro-mcp.anuragd.me/mcp"
+    "transit-mcp": {
+      "url": "https://transitmcp.com/mcp"
     }
   }
 }</code></pre>
@@ -1007,8 +1218,8 @@
         <p class="tab-help">Add to <code>~/.cursor/mcp.json</code></p>
         <pre><code>{
   "mcpServers": {
-    "metro-mcp": {
-      "url": "https://metro-mcp.anuragd.me/mcp"
+    "transit-mcp": {
+      "url": "https://transitmcp.com/mcp"
     }
   }
 }</code></pre>
@@ -1017,15 +1228,15 @@
 
       <div role="tabpanel" id="tab-codex" aria-labelledby="tab-btn-codex" hidden>
         <p class="tab-help">Run in your terminal</p>
-        <pre><code>codex mcp add metro-mcp https://metro-mcp.anuragd.me/mcp</code></pre>
+        <pre><code>codex mcp add transit-mcp https://transitmcp.com/mcp</code></pre>
         <button type="button" class="copy-snippet">Copy</button>
       </div>
 
       <div role="tabpanel" id="tab-generic" aria-labelledby="tab-btn-generic" hidden>
         <p class="tab-help">For any MCP client following the Streamable HTTP convention</p>
         <pre><code>{
-  "name": "metro-mcp",
-  "url": "https://metro-mcp.anuragd.me/mcp",
+  "name": "transit-mcp",
+  "url": "https://transitmcp.com/mcp",
   "transport": "streamable-http"
 }</code></pre>
         <button type="button" class="copy-snippet">Copy</button>
@@ -1269,9 +1480,9 @@
         const wrap = document.createElement('div');
         wrap.className = 'msg';
         wrap.innerHTML =
-          '<span class="avatar assistant">M</span>' +
+          '<span class="avatar assistant">T</span>' +
           '<div class="content">' +
-            '<div class="role">Your LLM &middot; using metro-mcp</div>' +
+            '<div class="role">Your LLM &middot; using transit-mcp</div>' +
             '<div class="tool-card">' +
               '<div class="tool-head">' +
                 '<span class="arrow">&rarr;</span>' +
@@ -1289,7 +1500,7 @@
         const wrap = document.createElement('div');
         wrap.className = 'msg';
         wrap.innerHTML =
-          '<span class="avatar assistant">M</span>' +
+          '<span class="avatar assistant">T</span>' +
           '<div class="content">' +
             '<div class="role">Your LLM</div>' +
             '<div class="body">' + html + '</div>' +
