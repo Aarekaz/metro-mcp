@@ -326,6 +326,9 @@
     }
     .docs {
       display: grid;
+      /* An explicit minmax(0, …) column lets long code lines scroll inside
+         their block instead of widening the page on phones. */
+      grid-template-columns: minmax(0, 1fr);
       gap: 46px;
       min-width: 0;
     }
