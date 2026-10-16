@@ -33,66 +33,37 @@
 
   applyChoice(readChoice());
 
+  const systemIsDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  // One button cycles the three modes. The first step from System is always
+  // the opposite of what is on screen, so every click but the last visibly flips.
+  const nextChoice = (choice) => {
+    const away = systemIsDark() ? ['light', 'dark'] : ['dark', 'light'];
+    if (choice === 'system') return away[0];
+    if (choice === away[0]) return away[1];
+    return 'system';
+  };
+
   const wire = () => {
-    const switcher = document.querySelector('.theme-switch');
-    if (!switcher) return;
-    const button = switcher.querySelector('.theme-button');
-    const menu = switcher.querySelector('.theme-menu');
-    const items = [...menu.querySelectorAll('[data-theme-choice]')];
+    const button = document.querySelector('.theme-button');
+    if (!button) return;
 
     const sync = () => {
       const choice = root.dataset.themeChoice;
-      button.setAttribute('aria-label', `Color theme: ${LABELS[choice]}`);
-      button.title = `Theme: ${LABELS[choice]}`;
-      for (const item of items) {
-        item.setAttribute('aria-checked', String(item.dataset.themeChoice === choice));
-      }
+      const label = `Theme: ${LABELS[choice]}. Switch to ${LABELS[nextChoice(choice)]}`;
+      button.setAttribute('aria-label', label);
+      button.title = label;
     };
 
-    const close = ({ focusButton = false } = {}) => {
-      menu.hidden = true;
-      button.setAttribute('aria-expanded', 'false');
-      if (focusButton) button.focus();
-    };
-
-    const open = () => {
-      menu.hidden = false;
-      button.setAttribute('aria-expanded', 'true');
-      (items.find((item) => item.getAttribute('aria-checked') === 'true') ?? items[0]).focus();
-    };
-
-    button.addEventListener('click', () => (menu.hidden ? open() : close()));
-
-    for (const item of items) {
-      item.addEventListener('click', () => {
-        const choice = item.dataset.themeChoice;
-        applyChoice(choice);
-        saveChoice(choice);
-        sync();
-        close({ focusButton: true });
-      });
-    }
-
-    menu.addEventListener('keydown', (event) => {
-      const index = items.indexOf(document.activeElement);
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        event.preventDefault();
-        const step = event.key === 'ArrowDown' ? 1 : -1;
-        items[(index + step + items.length) % items.length].focus();
-      } else if (event.key === 'Home' || event.key === 'End') {
-        event.preventDefault();
-        items[event.key === 'Home' ? 0 : items.length - 1].focus();
-      } else if (event.key === 'Escape') {
-        close({ focusButton: true });
-      } else if (event.key === 'Tab') {
-        close();
-      }
+    button.addEventListener('click', () => {
+      const choice = nextChoice(root.dataset.themeChoice);
+      applyChoice(choice);
+      saveChoice(choice);
+      sync();
     });
 
-    document.addEventListener('click', (event) => {
-      if (!menu.hidden && !switcher.contains(event.target)) close();
-    });
-
+    // The cycle order depends on the OS theme, so keep the label honest if it changes.
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', sync);
     sync();
   };
 
