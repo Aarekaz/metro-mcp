@@ -612,7 +612,7 @@ describe('SDK v2 resource contracts', () => {
       cacheScope: 'public',
       _meta: {
         'io.modelcontextprotocol/serverInfo': {
-          name: 'metro-mcp',
+          name: 'transit-mcp',
           version: '6.0.0',
         },
       },
