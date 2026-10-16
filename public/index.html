@@ -335,12 +335,12 @@
       z-index: 1;
       display: flex;
       flex-direction: column;
-      height: 398px;
+      height: 528px;
       max-width: 760px;
       margin: 0 auto;
       background: var(--surface);
       border: 1px solid rgba(10, 37, 64, 0.09);
-      border-radius: 16px;
+      border-radius: 18px;
       overflow: hidden;
       box-shadow:
         0 0 0 6px rgba(255, 255, 255, 0.5),
@@ -353,8 +353,8 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 16px;
-      background: linear-gradient(180deg, #fff, var(--bg));
+      padding: 11px 12px 11px 18px;
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
       font-size: 12px;
     }
@@ -374,28 +374,33 @@
     .chat-meta { color: var(--ink-3); }
     .chat-spacer { flex: 1; }
     .chat-replay {
-      width: 26px;
-      height: 26px;
-      border-radius: 6px;
-      color: rgba(42, 52, 65, 0.96);
-      font-size: 14px;
-      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      color: var(--ink-2);
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
     }
-    .chat-replay:hover { background: var(--surface); color: var(--ink); }
+    .chat-replay svg { width: 15px; height: 15px; }
+    .chat-replay:hover { background: var(--bg); border-color: var(--border); color: var(--ink); }
 
     .chat-body {
       flex: 1 1 auto;
       min-height: 0;
       overflow: hidden;
-      padding: 20px 22px;
+      padding: 22px 24px 8px;
       font-size: 14px;
       line-height: 1.55;
       color: var(--ink);
+      background: linear-gradient(180deg, #fff 0%, #fcfcfd 100%);
     }
 
     .msg {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       margin-bottom: 16px;
       opacity: 0;
       transform: translateY(4px);
@@ -427,27 +432,6 @@
       margin-bottom: 4px;
     }
     .msg .body { color: var(--ink); }
-    .msg .body ul {
-      margin: 6px 0 0 18px;
-      padding: 0;
-      font-size: 13.5px;
-      line-height: 1.7;
-    }
-
-    /* Inline line badge — reused inside chat responses. */
-    .line-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 20px;
-      height: 20px;
-      padding: 0 6px;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      vertical-align: -3px;
-    }
 
     /* Typewriter caret for the user message. */
     .caret::after {
@@ -458,88 +442,418 @@
     }
     @keyframes blink { 50% { opacity: 0; } }
 
-    /* Tool call card. */
+    /* Tool call card: the MCP mechanics, kept quiet so the answer leads. */
     .tool-card {
-      margin-top: 8px;
+      position: relative;
+      max-width: 460px;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg);
+      border-radius: 10px;
+      background: var(--surface);
+      box-shadow: 0 1px 2px rgba(10, 37, 64, 0.04);
       overflow: hidden;
     }
     .tool-head {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 9px 12px;
+      padding: 8px 10px 0 12px;
       font-size: 12px;
       color: var(--ink-2);
     }
-    .tool-head .arrow { color: var(--ink-3); font-family: var(--font-mono); }
+    .tool-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--ink-3);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+    }
     .tool-name {
       font-family: var(--font-mono);
       font-size: 12.5px;
       color: var(--ink);
       font-weight: 600;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .tool-tag {
       margin-left: auto;
-      font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 4px;
+      flex-shrink: 0;
+      font-size: 9.5px;
+      padding: 2px 7px;
+      border-radius: var(--radius-pill);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      transition: all 200ms ease;
+      font-variant-numeric: tabular-nums;
+      transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
     }
     .tool-tag.pending { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
     .tool-tag.ok      { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
     .tool-body {
-      padding: 10px 14px 12px;
-      background: #0c1320;
-      color: #cde2ff;
+      padding: 6px 12px 9px 38px;
+      color: var(--ink-2);
       font-family: var(--font-mono);
       font-size: 11.5px;
-      line-height: 1.55;
-      border-top: 1px solid var(--border);
+      line-height: 1.5;
       overflow-x: auto;
+      white-space: nowrap;
     }
-    .json-key { color: #67e8f9; }
-    .json-str { color: #fca573; }
-    .json-num { color: #b1f0d1; }
+    .json-key { color: #0e7490; }
+    .json-str { color: #b45309; }
+    .json-num { color: #047857; }
+    /* Indeterminate progress line while the call is in flight. */
+    .tool-card::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 2px;
+      width: 40%;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: tool-run 900ms ease-in-out infinite;
+    }
+    .tool-card.done::after { display: none; }
+    @keyframes tool-run {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(250%); }
+    }
+
+    /* ─── Answer UIs: departure board, trip, alert, access ─── */
+    .verdict {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+    .verdict .bullet { width: 20px; height: 20px; font-size: 11.5px; vertical-align: -2px; margin: -2px 0; }
+    .verdict .bullet.dc { width: auto; }
+    .note {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+    .note code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink);
+    }
+    /* Each piece of the answer streams in, in reading order. */
+    .rv {
+      animation: rv-in 360ms var(--ease-out) both;
+      animation-delay: calc(var(--d, 0) * 110ms);
+    }
+    @keyframes rv-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .card {
+      max-width: 460px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(10, 37, 64, 0.04), 0 8px 20px -14px rgba(10, 37, 64, 0.2);
+      overflow: hidden;
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .card-head .meta {
+      margin-left: auto;
+      font-weight: 500;
+      color: var(--ink-3);
+    }
+
+    /* Line bullets: NYC circles, WMATA two-letter pills. */
+    .bullet {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      color: #fff;
+      font-family: var(--font-ui);
+      font-size: 12.5px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .bullet.dc {
+      width: auto;
+      min-width: 30px;
+      padding: 0 6px;
+      border-radius: var(--radius-pill);
+      font-size: 10.5px;
+      letter-spacing: 0.03em;
+    }
+    .bullets { display: inline-flex; gap: 3px; }
+
+    /* Countdown: the hero of every departure row. */
+    .when {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .count {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .count small {
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0;
+      color: var(--ink-2);
+    }
+    .then {
+      margin-top: 3px;
+      font-size: 11.5px;
+      color: var(--ink-3);
+      font-variant-numeric: tabular-nums;
+    }
+    /* Realtime signal mark, Transit-app style. */
+    .rt {
+      width: 12px;
+      height: 12px;
+      margin-right: 1px;
+      align-self: flex-start;
+      color: #16a34a;
+      animation: rt-pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes rt-pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.35; }
+    }
+
+    .dep {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+    }
+    .dep + .dep { border-top: 1px solid var(--border); }
+    .dep-dest { flex: 1; min-width: 0; line-height: 1.3; }
+    .dep-dest b { display: block; font-size: 14px; font-weight: 600; }
+    .dep-dest span { font-size: 12px; color: var(--ink-3); }
+    .dep.quiet .count { font-size: 22px; color: var(--ink-2); }
+
+    /* Trip: vertical route with origin, ride, destination. */
+    .trip {
+      display: grid;
+      grid-template-columns: 14px 1fr auto;
+      column-gap: 14px;
+      padding: 14px 16px;
+    }
+    .trip .g { position: relative; }
+    .trip .g::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      width: 6px;
+      background: var(--c);
+    }
+    .trip .g.start::before { top: 11px; bottom: 0; border-radius: 3px 3px 0 0; }
+    .trip .g.mid::before   { top: 0; bottom: 0; }
+    .trip .g.end::before   { top: 0; height: 11px; }
+    .trip .g i {
+      position: absolute;
+      z-index: 1;
+      top: 4px;
+      left: 0;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid var(--c);
+    }
+    .trip .g.end i { background: var(--c); }
+    .trip-name { font-size: 14px; font-weight: 600; line-height: 22px; }
+    .trip-sub {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+    .trip-sub .bullet { width: 18px; height: 18px; font-size: 10.5px; }
+    .trip-ride {
+      grid-column: 2 / 4;
+      padding: 14px 0;
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+    .trip-ride b { color: var(--ink); font-weight: 600; }
+    .trip .arrive { font-size: 12px; color: var(--ink-3); line-height: 1.3; }
+    .trip .arrive b {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Alert card: kind, lines, where, impact. */
+    .alert { border-left: 3px solid var(--tone, #f59e0b); }
+    .alert-kind {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tone-text, #b45309);
+    }
+    .alert-kind svg { width: 13px; height: 13px; }
+    .alert-main { padding: 12px 14px 4px; }
+    .alert-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .facts { padding: 6px 14px 12px; }
+    .facts div {
+      display: flex;
+      gap: 12px;
+      padding: 5px 0;
+      font-size: 13px;
+    }
+    .facts dt {
+      flex: 0 0 64px;
+      color: var(--ink-3);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .facts dd { color: var(--ink); }
+    .facts dd b { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* Accessibility status. */
+    .access-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 14px 10px;
+    }
+    .access-check {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #ecfdf5;
+      color: #047857;
+      flex-shrink: 0;
+    }
+    .access-check svg { width: 18px; height: 18px; }
+    .access-status b {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      line-height: 1.2;
+    }
+    .access-status span { font-size: 12px; color: var(--ink-3); }
+    .units {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 0 14px 14px;
+    }
+    .units span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #166534;
+    }
+    .units span::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #16a34a;
+    }
+    .card-head svg { width: 14px; height: 14px; color: var(--ink-3); }
 
     /* Carousel dots */
     .chat-dots {
       flex: 0 0 auto;
       display: flex;
       justify-content: center;
-      gap: 8px;
-      padding: 0 0 18px;
-      background: var(--surface);
+      gap: 6px;
+      padding: 10px 0 16px;
+      background: #fcfcfd;
     }
     .chat-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: var(--radius-pill);
       background: var(--border);
-      transition: background 150ms ease, transform 150ms ease;
+      transition: background 150ms ease, width 200ms var(--ease-out);
     }
     .chat-dot:hover { background: var(--ink-3); }
     .chat-dot.active {
+      width: 20px;
       background: var(--ink);
-      transform: scale(1.15);
     }
 
     /* Reduced motion — skip animations, show final state. */
     @media (prefers-reduced-motion: reduce) {
       .msg { animation: none; opacity: 1; transform: none; }
-      .dot-live { animation: none; }
+      .rv { animation: none; }
+      .dot-live, .rt { animation: none; }
       .caret::after { animation: none; }
-      .tool-tag { transition: none; }
+      .tool-card::after { animation: none; display: none; }
+      .tool-tag, .chat-dot, .chat-replay { transition: none; }
     }
 
     @media (max-width: 560px) {
+      .chat-panel { height: 560px; border-radius: 16px; }
+      .chat-head { padding: 10px 10px 10px 14px; }
       .chat-body {
-        padding: 15px 14px;
+        padding: 16px 14px 6px;
         font-size: 13px;
         line-height: 1.45;
       }
@@ -547,13 +861,20 @@
         gap: 9px;
         margin-bottom: 13px;
       }
-      .tool-card { margin-top: 6px; }
-      .tool-head { padding: 8px 10px; }
+      .msg .avatar { width: 22px; height: 22px; font-size: 10px; }
+      .tool-head { padding: 7px 9px 0 10px; }
+      .tool-name { font-size: 11.5px; }
       .tool-body {
-        padding: 9px 11px 10px;
+        padding: 5px 10px 8px 36px;
         font-size: 10.5px;
-        line-height: 1.45;
       }
+      .verdict { font-size: 16px; margin-bottom: 8px; }
+      .count { font-size: 24px; }
+      .dep { padding: 11px 12px; gap: 10px; }
+      .trip { padding: 12px 13px; column-gap: 12px; }
+      .trip-ride { padding: 12px 0; }
+      .units { grid-template-columns: repeat(2, 1fr); }
+      .facts dt { flex-basis: 56px; }
       .chat-dots { padding-bottom: 14px; }
     }
 
@@ -1219,7 +1540,7 @@
             <span class="chat-title">Transit MCP</span>
             <span class="chat-meta">&middot; connected to your LLM</span>
             <span class="chat-spacer"></span>
-            <button type="button" class="chat-replay" data-replay aria-label="Replay current demo">&#8635;</button>
+            <button type="button" class="chat-replay" data-replay aria-label="Replay current demo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.8M2.6 2.4v2.9h2.9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </div>
           <div class="chat-body" data-chat-body></div>
           <div class="chat-dots" role="tablist">
@@ -1417,11 +1738,33 @@
       // ── Chat demo carousel ────────────────────────────────
       // SCENES is a hardcoded marketing-content array. It is NEVER mutated at
       // runtime, NEVER reads from user input / URL params / fetched data, and
-      // is the only source threaded into the innerHTML writes below. If you
-      // ever want to populate the demo from a live source, switch to
-      // createElement + textContent or sanitize with DOMPurify first.
+      // is the only source threaded into the innerHTML writes below. The small
+      // markup helpers just under this comment are called only with string
+      // literals from SCENES, so they don't change that. If you ever want to
+      // populate the demo from a live source, switch to createElement +
+      // textContent or sanitize with DOMPurify first.
+      const nyc = (line, bg, fg) =>
+        '<span class="bullet" style="background:' + bg + (fg ? ';color:' + fg : '') + '">' + line + '</span>';
+      const dc = (code, bg, fg) =>
+        '<span class="bullet dc" style="background:' + bg + (fg ? ';color:' + fg : '') + '">' + code + '</span>';
+      const RT =
+        '<svg class="rt" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5A4.5 4.5 0 0 1 6.5 2M2 10.5A8.5 8.5 0 0 1 10.5 2" ' +
+        'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="2.2" cy="9.8" r="1.4" fill="currentColor"/></svg>';
+      const WARN =
+        '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1L8 1.8Z" fill="currentColor"/>' +
+        '<path d="M8 6.2v3.6M8 11.6v.1" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>';
+      const CAL =
+        '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="3" width="12.4" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+        '<path d="M1.8 6.6h12.4M5 1.6v2.8M11 1.6v2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+      const LIFT =
+        '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="1.8" width="12.4" height="12.4" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<path d="M5.5 6.5 7.5 4.5 9.5 6.5M5.5 9.5 7.5 11.5 9.5 9.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(.5 0)"/></svg>';
+      const CHECK =
+        '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.4 3 3 6-6.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
       const SCENES = [
         // 1 — Real-life "can I make it?" (most natural opener — LLM has to reason)
+        // Verdict first, then the trip with its departure board, then one line of why.
         {
           user: "I'm at Union Square. Can I make it to Grand Central in 20 min?",
           tool: {
@@ -1430,12 +1773,23 @@
             ms: 610
           },
           response:
-            'Yes &mdash; the next ' +
-            '<span class="line-badge" style="background:#00933C">4</span>' +
-            '<span class="line-badge" style="background:#00933C">5</span>' +
-            '<span class="line-badge" style="background:#00933C">6</span> uptown trains: ' +
-            '<strong>2 min</strong>, <strong>5 min</strong>, and <strong>8 min</strong>. ' +
-            'Ride is ~6 min, so you should arrive in 8&ndash;14 min.'
+            '<p class="verdict rv">Yes, you\'ll make it.</p>' +
+            '<div class="card trip rv" style="--d:1;--c:#00933C">' +
+              '<span class="g start"><i></i></span>' +
+              '<div>' +
+                '<div class="trip-name">Union Sq &middot; 14 St</div>' +
+                '<div class="trip-sub"><span class="bullets">' +
+                  nyc('4', '#00933C') + nyc('5', '#00933C') + nyc('6', '#00933C') +
+                '</span>Uptown</div>' +
+              '</div>' +
+              '<div class="when"><span class="count">' + RT + '2<small>min</small></span><span class="then">then 5, 8 min</span></div>' +
+              '<span class="g mid"></span>' +
+              '<div class="trip-ride">Ride <b>about 6 min</b></div>' +
+              '<span class="g end"><i></i></span>' +
+              '<div class="trip-name">Grand Central &middot; 42 St</div>' +
+              '<div class="when arrive">Arrive in<b>8 to 14 min</b></div>' +
+            '</div>' +
+            '<p class="note rv" style="--d:2">Even the train in 8 min gets you there with 6 min to spare.</p>'
         },
         // 2 — Common worry: "any delays?"
         {
@@ -1446,10 +1800,18 @@
             ms: 210
           },
           response:
-            'Yes &mdash; there\'s an active delay at <strong>L\'Enfant Plaza</strong> affecting ' +
-            '<span class="line-badge" style="background:#009CDE">BL</span> and ' +
-            '<span class="line-badge" style="background:#FCD000;color:#0a2540">YL</span>. ' +
-            'Expect about <strong>+5 min</strong> on your trip through evening rush.'
+            '<p class="verdict rv">Yes. Plan on about 5 extra minutes.</p>' +
+            '<div class="card alert rv" style="--d:1">' +
+              '<div class="alert-main">' +
+                '<div class="alert-kind">' + WARN + 'Delay</div>' +
+                '<div class="alert-title">L\'Enfant Plaza</div>' +
+              '</div>' +
+              '<dl class="facts">' +
+                '<div><dt>Lines</dt><dd><span class="bullets">' + dc('BL', '#009CDE') + dc('YL', '#FCD000', '#0a2540') + '</span></dd></div>' +
+                '<div><dt>Impact</dt><dd><b>+5 min</b> on your trip</dd></div>' +
+                '<div><dt>Until</dt><dd>Through evening rush</dd></div>' +
+              '</dl>' +
+            '</div>'
         },
         // 3 — Friday afternoon: "any weekend service changes?"
         {
@@ -1460,8 +1822,17 @@
             ms: 210
           },
           response:
-            'Yes &mdash; the <span class="line-badge" style="background:#A7A9AC;color:#0a2540">L</span> is running every 8 min between 8th Ave and Bedford Ave ' +
-            '(vs the usual 5). Limited service to Canarsie all weekend.'
+            '<p class="verdict rv">Yes. The ' + nyc('L', '#A7A9AC', '#0a2540') + ' runs less often all weekend.</p>' +
+            '<div class="card alert rv" style="--d:1;--tone:#0a2540;--tone-text:#4f5b69">' +
+              '<div class="alert-main">' +
+                '<div class="alert-kind">' + CAL + 'Service change &middot; This weekend</div>' +
+                '<div class="alert-title">8 Av to Bedford Av</div>' +
+              '</div>' +
+              '<dl class="facts">' +
+                '<div><dt>Trains</dt><dd>Every <b>8 min</b> <span style="color:var(--ink-3)">(usually 5)</span></dd></div>' +
+                '<div><dt>Canarsie</dt><dd>Limited service</dd></div>' +
+              '</dl>' +
+            '</div>'
         },
         // 4 — Accessibility: "are the elevators working?"
         {
@@ -1472,7 +1843,16 @@
             ms: 330
           },
           response:
-            'All 4 elevators at <strong>Union Station</strong> are operational. No reported outages.'
+            '<p class="verdict rv">Yes, they\'re all working.</p>' +
+            '<div class="card rv" style="--d:1">' +
+              '<div class="card-head">' + LIFT + 'Union Station' +
+                '<span class="meta">Elevators</span></div>' +
+              '<div class="access-status">' +
+                '<span class="access-check">' + CHECK + '</span>' +
+                '<div><b>4 of 4 in service</b><span>No reported outages</span></div>' +
+              '</div>' +
+              '<div class="units"><span>Elevator 1</span><span>Elevator 2</span><span>Elevator 3</span><span>Elevator 4</span></div>' +
+            '</div>'
         },
         // 5 — Specific: "when's the next 1 train?"
         {
@@ -1483,12 +1863,18 @@
             ms: 190
           },
           response:
-            'The next <span class="line-badge" style="background:#EE352E">1</span> trains at <strong>Times Square &mdash; 42 St</strong>:' +
-            '<ul>' +
-              '<li><strong>3 min</strong> &nbsp;&middot;&nbsp; downtown to South Ferry</li>' +
-              '<li><strong>8 min</strong> &nbsp;&middot;&nbsp; uptown to Van Cortlandt Park</li>' +
-              '<li><strong>11 min</strong> &nbsp;&middot;&nbsp; downtown to South Ferry</li>' +
-            '</ul>'
+            '<p class="verdict rv">Next ' + nyc('1', '#EE352E') + ' is in 3 min, heading downtown.</p>' +
+            '<div class="card rv" style="--d:1">' +
+              '<div class="card-head">Times Sq &middot; 42 St<span class="meta">Next departures</span></div>' +
+              '<div class="dep">' + nyc('1', '#EE352E') +
+                '<div class="dep-dest"><b>South Ferry</b><span>Downtown</span></div>' +
+                '<div class="when"><span class="count">' + RT + '3<small>min</small></span><span class="then">then 11 min</span></div>' +
+              '</div>' +
+              '<div class="dep quiet">' + nyc('1', '#EE352E') +
+                '<div class="dep-dest"><b>Van Cortlandt Park</b><span>Uptown</span></div>' +
+                '<div class="when"><span class="count">8<small>min</small></span></div>' +
+              '</div>' +
+            '</div>'
         },
         // 6 — API-feeling: "where are the 30N buses?"
         {
@@ -1499,12 +1885,16 @@
             ms: 310
           },
           response:
-            'Live <span class="line-badge" style="background:#0a2540">30N</span> vehicle feed checked:' +
-            '<ul>' +
-              '<li>Active buses appear when WMATA reports vehicle positions</li>' +
-              '<li>Filter by route ID, then map vehicle IDs and coordinates</li>' +
-            '</ul>' +
-            'Use <strong>get_bus_predictions</strong> for stop-specific ETAs.'
+            '<p class="verdict rv">Checked the ' + dc('30N', '#0a2540') + ' vehicle feed.</p>' +
+            '<div class="card rv" style="--d:1">' +
+              '<div class="card-head">Metrobus 30N<span class="meta">Vehicle positions</span></div>' +
+              '<dl class="facts" style="padding-top:8px">' +
+                '<div><dt>Shows</dt><dd>Active buses, as WMATA reports them</dd></div>' +
+                '<div><dt>Per bus</dt><dd>Vehicle ID and coordinates</dd></div>' +
+                '<div><dt>Filter</dt><dd>Route ID <b>30N</b></dd></div>' +
+              '</dl>' +
+            '</div>' +
+            '<p class="note rv" style="--d:2">For stop-specific ETAs, use <code>get_bus_predictions</code>.</p>'
         }
       ];
 
@@ -1513,7 +1903,7 @@
         afterType: 350,
         toolMin: 180,
         afterTool: 380,
-        afterResponse: 4200
+        afterResponse: 5200
       };
 
       const chatBody = document.querySelector('[data-chat-body]');
@@ -1551,9 +1941,9 @@
           '<span class="avatar assistant">T</span>' +
           '<div class="content">' +
             '<div class="role">Your LLM &middot; using Transit MCP</div>' +
-            '<div class="tool-card">' +
+            '<div class="tool-card" data-tool-card>' +
               '<div class="tool-head">' +
-                '<span class="arrow">&rarr;</span>' +
+                '<span class="tool-icon">&fnof;</span>' +
                 '<span class="tool-name">' + tool.name + '</span>' +
                 '<span class="tool-tag pending" data-tag>PENDING</span>' +
               '</div>' +
@@ -1594,6 +1984,7 @@
         runToken++;
         const token = runToken;
         const scene = SCENES[idx];
+        currentScene = idx;
         chatBody.innerHTML = '';
         setActiveDot(idx);
 
@@ -1614,10 +2005,11 @@
         tag.classList.remove('pending');
         tag.classList.add('ok');
         tag.textContent = 'DONE · ' + scene.tool.ms + ' ms';
+        toolEl.querySelector('[data-tool-card]').classList.add('done');
         await wait(TIMING.afterTool);
         if (token !== runToken) return;
 
-        // 3. Assistant response — inserted, fades in via .msg animation
+        // 3. Assistant response — inserted; its parts stream in via .rv delays
         renderAssistantMsg(scene.response);
         await wait(TIMING.afterResponse);
         if (token !== runToken) return;
