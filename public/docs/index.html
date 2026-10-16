@@ -61,17 +61,35 @@
     :root {
       --bg: #fafbfc;
       --ink: #0a2540;
-      --ink-2: #5b6470;
-      --ink-3: #8a93a0;
+      --ink-2: #3f4b59;
+      --ink-3: #66717e;
+      --on-ink: #ffffff;
       --border: #e6e8eb;
       --accent: #ff6b1a;
       --surface: #ffffff;
       --soft: #f3f7fb;
       --good: #16a34a;
+      color-scheme: light;
       --radius-pill: 999px;
       --radius-card: 12px;
       --font-ui: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #121a28;
+        --ink: #eef2f7;
+        --ink-2: #c4cdd8;
+        --ink-3: #97a3b2;
+        --on-ink: #0f1724;
+        --border: #263247;
+        --accent: #ff8f4d;
+        --surface: #172133;
+        --soft: #1a2538;
+        --good: #22c55e;
+      }
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -142,7 +160,7 @@
     }
     .cta-pill {
       background: var(--ink);
-      color: #fff;
+      color: var(--on-ink);
       padding: 7px 14px;
       border-radius: var(--radius-pill);
       font-size: 13px;
@@ -220,7 +238,7 @@
     }
     .primary-action {
       background: var(--ink);
-      color: #fff;
+      color: var(--on-ink);
     }
     .secondary-action {
       background: var(--surface);
@@ -452,7 +470,7 @@
       width: max-content;
       border-radius: 6px;
       background: var(--ink);
-      color: #fff;
+      color: var(--on-ink);
       padding: 2px 7px;
       font-family: var(--font-mono);
       font-size: 11px;
@@ -496,7 +514,7 @@
       left: 50%;
       transform: translateX(-50%);
       background: var(--ink);
-      color: #fff;
+      color: var(--on-ink);
       border-radius: var(--radius-pill);
       padding: 8px 14px;
       font-size: 13px;

@@ -84,16 +84,41 @@
   <style>
     /* ─── Design tokens ─────────────────────────────────────── */
     :root {
+      color-scheme: light;
       --bg: #fafbfc;
+      --bg-rgb: 250, 251, 252;
       --ink: #0a2540;
-      --ink-2: #4f5b69;
-      --ink-3: #7d8794;
+      --ink-rgb: 10, 37, 64;
+      --ink-2: #3f4b59;
+      --ink-3: #66717e;
+      --on-ink: #ffffff;
       --border: #e6e8eb;
       --hairline: rgba(10, 37, 64, 0.1);
       --accent: #ff6b1a;
       /* Deeper orange for text so the accent word clears large-text contrast. */
       --accent-text: #e2540a;
       --surface: #ffffff;
+      --surface-2: #fcfcfd;
+      /* Frosted pills that sit on top of the photos. */
+      --glass: rgba(255, 255, 255, 0.74);
+      /* Soft glow behind text that sits directly on a photo. */
+      --halo: rgba(250, 251, 252, 0.94);
+
+      --ok-bg: #ecfdf5;
+      --ok-fg: #047857;
+      --ok-border: #a7f3d0;
+      --pending-bg: #fff7ed;
+      --pending-fg: #c2410c;
+      --pending-border: #fed7aa;
+      --warn-fg: #b45309;
+      --units-bg: #f0fdf4;
+      --units-fg: #166534;
+      --units-border: #bbf7d0;
+      --json-key: #0e7490;
+      --json-str: #b45309;
+      --json-num: #047857;
+      /* Mono client logos ship gray; dark mode lifts them. */
+      --logo-filter: none;
 
       /* Transit line colors — used only as small, non-text details. */
       --line-red: #ee352e;
@@ -112,6 +137,43 @@
       --font-display: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
       --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    /* Night: the photos turn into silhouettes and their lamps switch on. */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #121a28;
+        --bg-rgb: 18, 26, 40;
+        --ink: #eef2f7;
+        --ink-rgb: 238, 242, 247;
+        --ink-2: #c4cdd8;
+        --ink-3: #97a3b2;
+        --on-ink: #0f1724;
+        --border: #263247;
+        --hairline: rgba(238, 242, 247, 0.13);
+        --accent-text: #ff8f4d;
+        --surface: #172133;
+        --surface-2: #151e2e;
+        --glass: rgba(21, 30, 46, 0.72);
+        --halo: rgba(18, 26, 40, 0.92);
+        --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.5);
+
+        --ok-bg: rgba(16, 185, 129, 0.13);
+        --ok-fg: #6ee7b7;
+        --ok-border: rgba(110, 231, 183, 0.3);
+        --pending-bg: rgba(251, 146, 60, 0.13);
+        --pending-fg: #fdba74;
+        --pending-border: rgba(253, 186, 116, 0.32);
+        --warn-fg: #fbbf24;
+        --units-bg: rgba(34, 197, 94, 0.1);
+        --units-fg: #86efac;
+        --units-border: rgba(134, 239, 172, 0.26);
+        --json-key: #67e8f9;
+        --json-str: #fcd34d;
+        --json-num: #6ee7b7;
+        --logo-filter: invert(1) hue-rotate(180deg) brightness(1.2);
+      }
     }
 
     /* ─── Reset + base typography ───────────────────────────── */
@@ -199,7 +261,7 @@
 
     nav .cta-pill {
       background: var(--ink);
-      color: #fff;
+      color: var(--on-ink);
       padding: 7px 14px;
       border-radius: var(--radius-pill);
       font-size: 13px;
@@ -254,26 +316,75 @@
       min-height: calc(100vh - 64px - 40px - 480px);
       background: var(--bg);
     }
-    .hero-section::before {
-      content: "";
+    /* Same placement the photo had as a background (1180px wide, x: 50% - 40px, y: 54%). */
+    .hero-art {
+      position: absolute;
+      top: 54%;
+      left: 50%;
+      width: 1180px;
+      aspect-ratio: 2400 / 1920;
+      transform: translate(calc(-50% - 40px), -54%);
+      z-index: 0;
+      pointer-events: none;
+    }
+    .hero-art img,
+    .hero-art svg,
+    .action-art img,
+    .action-art svg {
       position: absolute;
       inset: 0;
-      background-image: url("/train-classic-bg.jpg");
-      background-size: 1180px auto;
-      background-repeat: no-repeat;
-      background-position: calc(50% - 40px) 54%;
-      opacity: 0.9;
-      filter: saturate(0.8) contrast(1.18);
-      z-index: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
     }
+    /* Day: screen lifts the train's blacks to a soft blue-gray, so the photo
+       never gets darker than this tone and dark text always clears it. */
+    .hero-art { background: #b4bfcc; }
+    .hero-art img { mix-blend-mode: screen; }
     .hero-section::after {
       content: "";
       position: absolute;
       inset: 0;
       background:
-        linear-gradient(180deg, rgba(250, 251, 252, 0.66) 0%, rgba(250, 251, 252, 0.52) 46%, rgba(250, 251, 252, 0.9) 100%),
-        radial-gradient(ellipse 70% 44% at 50% 42%, rgba(250, 251, 252, 0.24), rgba(250, 251, 252, 0.86) 75%);
+        linear-gradient(180deg, rgba(var(--bg-rgb), 0.55) 0%, rgba(var(--bg-rgb), 0.1) 28%, rgba(var(--bg-rgb), 0.15) 60%, rgba(var(--bg-rgb), 0.95) 100%),
+        radial-gradient(ellipse 60% 55% at 50% 46%, rgba(var(--bg-rgb), 0), rgba(var(--bg-rgb), 0.94) 82%),
+        /* Reading pool: settles the photo under the subtitle, links, and chips. */
+        radial-gradient(ellipse 30% 26% at 50% 66%, rgba(var(--bg-rgb), 0.45), rgba(var(--bg-rgb), 0) 100%);
       z-index: 1;
+    }
+
+    /* Lamps: off by day, on at night. */
+    .lamps { opacity: 0; transition: opacity 600ms ease; }
+    .lamp-glow { mix-blend-mode: screen; }
+    .lamp-board { mix-blend-mode: color-dodge; }
+
+    @media (prefers-color-scheme: dark) {
+      /* Multiply turns the white fog into night sky and keeps the train a silhouette. */
+      .hero-section,
+      .hero-art { background: #283449; }
+      .hero-art img {
+        filter: contrast(1.08);
+        mix-blend-mode: multiply;
+      }
+      .hero-section::after {
+        background:
+          linear-gradient(180deg, rgba(var(--bg-rgb), 0.6) 0%, rgba(var(--bg-rgb), 0) 28%, rgba(var(--bg-rgb), 0.05) 60%, rgba(var(--bg-rgb), 0.95) 100%),
+          radial-gradient(ellipse 60% 55% at 50% 46%, rgba(var(--bg-rgb), 0), rgba(var(--bg-rgb), 0.94) 82%),
+          radial-gradient(ellipse 30% 26% at 50% 66%, rgba(var(--bg-rgb), 0.45), rgba(var(--bg-rgb), 0) 100%);
+      }
+      .lamps {
+        opacity: 1;
+        animation: lamps-on 1400ms ease-out 300ms both;
+      }
+    }
+    /* A short flicker as the lamps warm up. */
+    @keyframes lamps-on {
+      0%   { opacity: 0; }
+      18%  { opacity: 0.7; }
+      26%  { opacity: 0.15; }
+      40%  { opacity: 0.85; }
+      48%  { opacity: 0.5; }
+      100% { opacity: 1; }
     }
 
     .hero {
@@ -297,17 +408,31 @@
       width: 100%;
       overflow: visible;
     }
-    .action-band::before {
-      content: "";
+    .action-art {
       position: absolute;
       inset: -190px 0 0;
-      background:
-        linear-gradient(180deg, rgba(250, 251, 252, 0.96) 0%, rgba(250, 251, 252, 0.72) 30%, rgba(250, 251, 252, 0.5) 58%, rgba(250, 251, 252, 0.48) 100%),
-        url("/action-bg.jpg") center 52% / cover no-repeat;
       opacity: 0.92;
       -webkit-mask-image: linear-gradient(180deg, transparent 0, rgba(0, 0, 0, 0.12) 95px, rgba(0, 0, 0, 0.82) 220px, #000 330px, #000 100%);
       mask-image: linear-gradient(180deg, transparent 0, rgba(0, 0, 0, 0.12) 95px, rgba(0, 0, 0, 0.82) 220px, #000 330px, #000 100%);
+      overflow: hidden;
+      pointer-events: none;
       z-index: 0;
+    }
+    .action-art { background: #bfc8d3; }
+    .action-art img { object-fit: cover; object-position: center; mix-blend-mode: screen; }
+    .action-art .lamps-svg { z-index: 1; }
+    .action-art::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(var(--bg-rgb), 0.96) 0%, rgba(var(--bg-rgb), 0.6) 30%, rgba(var(--bg-rgb), 0.3) 58%, rgba(var(--bg-rgb), 0.3) 100%);
+    }
+    @media (prefers-color-scheme: dark) {
+      .action-art { opacity: 1; background: #1c2638; }
+      .action-art img { mix-blend-mode: multiply; filter: contrast(1.1); }
+      .action-art::after {
+        background: linear-gradient(180deg, rgba(var(--bg-rgb), 0.96) 0%, rgba(var(--bg-rgb), 0.6) 30%, rgba(var(--bg-rgb), 0.28) 58%, rgba(var(--bg-rgb), 0.3) 100%);
+      }
     }
     @media (min-width: 720px) { .action-band { padding: 120px 48px 12px; } }
 
@@ -323,11 +448,11 @@
       z-index: 1;
       text-align: center;
       font-size: 11px;
-      color: rgba(10, 37, 64, 0.78);
+      color: var(--ink-2);
       text-transform: uppercase;
       letter-spacing: 0.14em;
       font-weight: 600;
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.74);
+      text-shadow: 0 0 2px var(--halo), 0 0 10px var(--halo);
     }
 
     .chat-panel {
@@ -339,11 +464,11 @@
       max-width: 760px;
       margin: 0 auto;
       background: var(--surface);
-      border: 1px solid rgba(10, 37, 64, 0.09);
+      border: 1px solid var(--hairline);
       border-radius: 18px;
       overflow: hidden;
       box-shadow:
-        0 0 0 6px rgba(255, 255, 255, 0.5),
+        0 0 0 6px rgba(var(--bg-rgb), 0.5),
         0 30px 60px -20px rgba(10, 37, 64, 0.22),
         0 2px 6px rgba(10, 37, 64, 0.04);
     }
@@ -395,7 +520,7 @@
       font-size: 14px;
       line-height: 1.55;
       color: var(--ink);
-      background: linear-gradient(180deg, #fff 0%, #fcfcfd 100%);
+      background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
     }
 
     .msg {
@@ -496,8 +621,8 @@
       font-variant-numeric: tabular-nums;
       transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
     }
-    .tool-tag.pending { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-    .tool-tag.ok      { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .tool-tag.pending { background: var(--pending-bg); color: var(--pending-fg); border: 1px solid var(--pending-border); }
+    .tool-tag.ok      { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid var(--ok-border); }
     .tool-body {
       padding: 6px 12px 9px 38px;
       color: var(--ink-2);
@@ -507,9 +632,9 @@
       overflow-x: auto;
       white-space: nowrap;
     }
-    .json-key { color: #0e7490; }
-    .json-str { color: #b45309; }
-    .json-num { color: #047857; }
+    .json-key { color: var(--json-key); }
+    .json-str { color: var(--json-str); }
+    .json-num { color: var(--json-num); }
     /* Indeterminate progress line while the call is in flight. */
     .tool-card::after {
       content: "";
@@ -691,7 +816,7 @@
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      background: #fff;
+      background: var(--surface);
       border: 3px solid var(--c);
     }
     .trip .g.end i { background: var(--c); }
@@ -733,7 +858,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: var(--tone-text, #b45309);
+      color: var(--tone-text, var(--warn-fg));
     }
     .alert-kind svg { width: 13px; height: 13px; }
     .alert-main { padding: 12px 14px 4px; }
@@ -776,8 +901,8 @@
       width: 34px;
       height: 34px;
       border-radius: 50%;
-      background: #ecfdf5;
-      color: #047857;
+      background: var(--ok-bg);
+      color: var(--ok-fg);
       flex-shrink: 0;
     }
     .access-check svg { width: 18px; height: 18px; }
@@ -802,11 +927,11 @@
       gap: 6px;
       padding: 6px 8px;
       border-radius: 8px;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
+      background: var(--units-bg);
+      border: 1px solid var(--units-border);
       font-size: 11.5px;
       font-weight: 600;
-      color: #166534;
+      color: var(--units-fg);
     }
     .units span::before {
       content: "";
@@ -824,7 +949,7 @@
       justify-content: center;
       gap: 6px;
       padding: 10px 0 16px;
-      background: #fcfcfd;
+      background: var(--surface-2);
     }
     .chat-dot {
       width: 7px;
@@ -886,7 +1011,7 @@
       padding: 5px 14px 5px 10px;
       border: 1px solid var(--hairline);
       border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.72);
+      background: var(--glass);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       box-shadow: 0 1px 2px rgba(10, 37, 64, 0.04);
@@ -933,11 +1058,20 @@
       padding-right: 0.04em;
     }
 
+    /* Text set straight on the photo gets a soft halo so it never blends in. */
+    .hero h1,
+    .hero .subtitle,
+    .hero-tip,
+    .hero .footnote {
+      text-shadow: 0 0 2px var(--halo), 0 0 12px var(--halo), 0 0 28px var(--halo);
+    }
+
     .hero .subtitle {
       max-width: 540px;
       font-size: clamp(15.5px, 1.4vw, 17.5px);
       line-height: 1.6;
       color: var(--ink-2);
+      font-weight: 450;
       text-wrap: pretty;
     }
 
@@ -948,7 +1082,7 @@
       flex-wrap: wrap;
       gap: 6px 10px;
       font-size: 13px;
-      color: var(--ink-3);
+      color: var(--ink-2);
       margin-top: 6px;
     }
     .compat-examples {
@@ -962,16 +1096,23 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      color: var(--ink-2);
+      color: var(--ink);
+      font-weight: 500;
       white-space: nowrap;
     }
-    a.compat-item { text-decoration: none; }
-    a.compat-item:hover { color: var(--ink); }
+    a.compat-item {
+      text-decoration: none;
+      transition: transform 120ms ease, color 120ms ease;
+    }
+    /* Same lift as the infra chips below. */
+    a.compat-item:hover { color: var(--accent-text); transform: translateY(-1px); }
+    a.compat-item:hover .compat-logo { opacity: 1; }
     .compat-logo {
       width: 14px;
       height: 14px;
       display: block;
       opacity: 0.82;
+      filter: var(--logo-filter);
     }
 
     .infra-strip {
@@ -989,10 +1130,10 @@
       gap: 8px;
       min-height: 34px;
       padding: 7px 12px;
-      border: 1px solid rgba(10, 37, 64, 0.09);
+      border: 1px solid var(--hairline);
       border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.54);
-      color: #506176;
+      background: var(--glass);
+      color: var(--ink-2);
       font-size: 12px;
       font-weight: 500;
       box-shadow: 0 1px 2px rgba(10, 37, 64, 0.03);
@@ -1002,7 +1143,7 @@
       transition: border-color 120ms ease, transform 120ms ease;
     }
     a.infra-chip:hover {
-      border-color: rgba(10, 37, 64, 0.2);
+      border-color: rgba(var(--ink-rgb), 0.2);
       transform: translateY(-1px);
     }
     .infra-mark {
@@ -1053,7 +1194,7 @@
     .hero-tip {
       margin: 0;
       font-size: 14px;
-      color: var(--ink-3);
+      color: var(--ink-2);
       text-align: center;
     }
     .cta-row {
@@ -1080,7 +1221,7 @@
     }
     .url-pill .url-scheme { color: var(--ink-3); }
     .url-pill:hover {
-      border-color: rgba(10, 37, 64, 0.28);
+      border-color: rgba(var(--ink-rgb), 0.28);
       box-shadow: 0 1px 2px rgba(10, 37, 64, 0.04), 0 12px 28px -12px rgba(10, 37, 64, 0.26);
     }
     .url-pill:active { transform: translateY(1px); }
@@ -1100,9 +1241,9 @@
     }
     .url-pill:hover .url-status { color: var(--ink); }
     .url-pill[data-copied="true"] .url-status {
-      color: #047857;
-      background: #ecfdf5;
-      border-color: #a7f3d0;
+      color: var(--ok-fg);
+      background: var(--ok-bg);
+      border-color: var(--ok-border);
     }
 
     .cta-button {
@@ -1111,7 +1252,7 @@
       gap: 8px;
       min-height: 46px;
       background: var(--ink);
-      color: #fff;
+      color: var(--on-ink);
       padding: 0 20px 0 22px;
       border-radius: var(--radius-pill);
       font-size: 14px;
@@ -1134,7 +1275,7 @@
       padding: 7px 14px 7px 8px;
       border-radius: var(--radius-pill);
       border: 1px solid var(--hairline);
-      background: rgba(255, 255, 255, 0.66);
+      background: var(--glass);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       font-size: 13px;
@@ -1151,15 +1292,15 @@
       background: var(--surface);
       border: 1px solid var(--border);
     }
-    .plugin-link .plugin-mark img { width: 14px; height: 14px; display: block; }
+    .plugin-link .plugin-mark img { width: 14px; height: 14px; display: block; filter: var(--logo-filter); }
     .plugin-link strong { color: var(--ink); font-weight: 600; }
     .plugin-link .plugin-arrow {
       color: var(--ink-3);
       transition: transform 200ms var(--ease-out), color 160ms ease;
     }
     .plugin-link:hover {
-      border-color: rgba(10, 37, 64, 0.24);
-      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(var(--ink-rgb), 0.24);
+      background: var(--surface);
       transform: translateY(-1px);
     }
     .plugin-link:hover .plugin-arrow {
@@ -1181,9 +1322,9 @@
       content: "";
       flex: 1;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(10, 37, 64, 0.22));
+      background: linear-gradient(90deg, transparent, rgba(var(--ink-rgb), 0.22));
     }
-    .route-rule::after { background: linear-gradient(90deg, rgba(10, 37, 64, 0.22), transparent); }
+    .route-rule::after { background: linear-gradient(90deg, rgba(var(--ink-rgb), 0.22), transparent); }
     .route-stops {
       display: inline-flex;
       align-items: center;
@@ -1194,7 +1335,7 @@
       height: 7px;
       border-radius: 50%;
       background: var(--c);
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 0 2px rgba(var(--bg-rgb), 0.9);
     }
 
     /* Load-in: hero pieces rise in a short stagger. */
@@ -1232,12 +1373,12 @@
       font-size: 13px;
       color: var(--ink);
       font-weight: 600;
-      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.86);
+      text-shadow: 0 0 2px var(--halo), 0 0 10px var(--halo);
     }
     @media (min-width: 720px) {
       footer { padding: 12px 48px 4px; }
     }
-    footer .dot-sep { color: rgba(10, 37, 64, 0.58); }
+    footer .dot-sep { color: var(--ink-3); }
     .footer-link {
       display: inline-flex;
       align-items: center;
@@ -1263,15 +1404,15 @@
     .footer-action {
       min-height: 30px;
       padding: 5px 11px;
-      border: 1px solid rgba(10, 37, 64, 0.16);
+      border: 1px solid rgba(var(--ink-rgb), 0.16);
       border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 4px 12px rgba(10, 37, 64, 0.08), 0 1px 0 rgba(255, 255, 255, 0.92) inset;
+      background: var(--surface);
+      box-shadow: 0 4px 12px rgba(10, 37, 64, 0.08), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
       font-size: 12.5px;
       font-weight: 600;
     }
     .footer-action:hover {
-      border-color: rgba(10, 37, 64, 0.34);
+      border-color: rgba(var(--ink-rgb), 0.34);
       transform: translateY(-1px);
     }
     .footer-legal {
@@ -1296,7 +1437,7 @@
       .footer-action {
         min-height: 32px;
         padding: 6px 12px;
-        background: #fff;
+        background: var(--surface);
       }
     }
 
@@ -1413,7 +1554,7 @@
       width: 100%;
       padding: 9px 14px;
       background: var(--ink);
-      color: #fff;
+      color: var(--on-ink);
       font-size: 13px;
       font-weight: 500;
       border-radius: var(--radius-input);
@@ -1428,7 +1569,7 @@
       left: 50%;
       transform: translateX(-50%);
       background: var(--ink);
-      color: #fff;
+      color: var(--on-ink);
       padding: 8px 16px;
       border-radius: var(--radius-pill);
       font-size: 13px;
@@ -1444,6 +1585,8 @@
       dialog#install-dialog[open] { animation: none; }
       #toast { transition: none; }
       .rise { animation: none; opacity: 1; transform: none; }
+      .lamps { animation: none; transition: none; }
+      a.compat-item { transition: none; }
       .cta-button .cta-arrow,
       .plugin-link,
       .plugin-link .plugin-arrow { transition: none; }
@@ -1470,6 +1613,44 @@
 
   <main>
     <section class="hero-section">
+      <div class="hero-art" aria-hidden="true">
+        <img src="/train-classic-bg.jpg" alt="" width="2400" height="1920" decoding="async">
+        <!-- Lamp layers share the photo's pixel grid (2400x1920). -->
+        <svg class="lamps lamp-glow" viewBox="0 0 2400 1920">
+          <defs>
+            <radialGradient id="lamp-hot">
+              <stop offset="0" stop-color="#fffaf0"/>
+              <stop offset="0.14" stop-color="#fff1d0"/>
+              <stop offset="0.4" stop-color="#ffcf87" stop-opacity="0.42"/>
+              <stop offset="1" stop-color="#ff9f43" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="lamp-soft">
+              <stop offset="0" stop-color="#ffe2a8" stop-opacity="0.5"/>
+              <stop offset="1" stop-color="#ffb35c" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="lamp-streak">
+              <stop offset="0" stop-color="#ffe9c2" stop-opacity="0"/>
+              <stop offset="0.5" stop-color="#fff4dc" stop-opacity="0.75"/>
+              <stop offset="1" stop-color="#ffe9c2" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- Light thrown into the fog ahead of the train. -->
+          <ellipse cx="730" cy="1120" rx="520" ry="300" fill="url(#lamp-soft)"/>
+          <!-- Headlights. -->
+          <circle cx="568" cy="1030" r="150" fill="url(#lamp-hot)"/>
+          <circle cx="893" cy="1028" r="150" fill="url(#lamp-hot)"/>
+          <rect x="300" y="1026" width="540" height="8" rx="4" fill="url(#lamp-streak)"/>
+          <rect x="625" y="1024" width="540" height="8" rx="4" fill="url(#lamp-streak)"/>
+          <!-- Upper ditch lights. -->
+          <circle cx="860" cy="507" r="80" fill="url(#lamp-hot)"/>
+          <circle cx="902" cy="507" r="80" fill="url(#lamp-hot)"/>
+        </svg>
+        <!-- Numberboards light from behind; dark digits stay dark. -->
+        <svg class="lamps lamp-board" viewBox="0 0 2400 1920">
+          <rect x="727" y="489" width="106" height="45" rx="8" fill="#7d6038"/>
+          <rect x="947" y="483" width="130" height="44" rx="8" fill="#7d6038"/>
+        </svg>
+      </div>
       <div class="hero">
         <p class="hero-status rise" style="--i:0">
           <span class="status-live"><span class="dot-live" aria-hidden="true"></span>Live</span>
@@ -1524,6 +1705,26 @@
     </section>
 
     <div class="action-band">
+      <div class="action-art" aria-hidden="true">
+        <img src="/action-bg.jpg" alt="" width="1800" height="1350" decoding="async">
+        <!-- Lamp layers share the mural's pixel grid (1800x1350). -->
+        <svg class="lamps lamps-svg lamp-glow" viewBox="0 0 1800 1350" preserveAspectRatio="xMidYMid slice">
+          <!-- Station lantern under the canopy. -->
+          <circle cx="430" cy="636" r="90" fill="url(#lamp-hot)"/>
+          <ellipse cx="430" cy="760" rx="150" ry="120" fill="url(#lamp-soft)"/>
+          <!-- Locomotive headlights. -->
+          <circle cx="1138" cy="756" r="70" fill="url(#lamp-hot)"/>
+          <circle cx="1198" cy="756" r="70" fill="url(#lamp-hot)"/>
+          <circle cx="1398" cy="756" r="70" fill="url(#lamp-hot)"/>
+          <circle cx="1440" cy="756" r="70" fill="url(#lamp-hot)"/>
+          <ellipse cx="1290" cy="900" rx="330" ry="170" fill="url(#lamp-soft)"/>
+        </svg>
+        <!-- Station signs lit from behind. -->
+        <svg class="lamps lamps-svg lamp-board" viewBox="0 0 1800 1350" preserveAspectRatio="xMidYMid slice">
+          <rect x="315" y="556" width="228" height="32" rx="4" fill="#6e5432"/>
+          <rect x="586" y="621" width="30" height="29" rx="3" fill="#6e5432"/>
+        </svg>
+      </div>
       <section class="chat-section" aria-hidden="true">
         <div class="route-rule">
           <span class="route-stops" aria-hidden="true">
@@ -1823,7 +2024,7 @@
           },
           response:
             '<p class="verdict rv">Yes. The ' + nyc('L', '#A7A9AC', '#0a2540') + ' runs less often all weekend.</p>' +
-            '<div class="card alert rv" style="--d:1;--tone:#0a2540;--tone-text:#4f5b69">' +
+            '<div class="card alert rv" style="--d:1;--tone:var(--ink);--tone-text:var(--ink-2)">' +
               '<div class="alert-main">' +
                 '<div class="alert-kind">' + CAL + 'Service change &middot; This weekend</div>' +
                 '<div class="alert-title">8 Av to Bedford Av</div>' +
