@@ -1,4 +1,4 @@
-import { isLegacyRequest } from '@modelcontextprotocol/server';
+import { CLIENT_INFO_META_KEY, isLegacyRequest } from '@modelcontextprotocol/server';
 import { createMcpHandler } from 'agents/mcp/server';
 
 import type { Config } from '../config';
@@ -238,17 +238,27 @@ function bridgeResponseCancellation(
   });
 }
 
+function clientNameFrom(value: unknown): string | undefined {
+  return typeof value === 'object' && value !== null
+    && typeof (value as Record<string, unknown>).name === 'string'
+    ? (value as Record<string, unknown>).name as string
+    : undefined;
+}
+
 /**
  * Best-effort capture of the request facts the SDK callback cannot see:
- * the transport session header, the calling client's name (initialize
- * bodies only), and method/name for legacy requests that carry no
- * Mcp-Method/Mcp-Name headers. Values land in telemetry and are only
- * ever emitted through its allowlist sanitizer. Never throws.
+ * the transport session header, the calling client's name (legacy
+ * initialize params, or the per-request clientInfo `_meta` that modern
+ * clients send on tools/call), and method/name for legacy requests that
+ * carry no Mcp-Method/Mcp-Name headers. Values land in telemetry and are
+ * only ever emitted through its allowlist sanitizer. Never throws.
  */
 async function captureRequestTelemetry(request: Request, telemetry: TelemetryInput): Promise<void> {
   telemetry.sessionId = request.headers.get('Mcp-Session-Id') ?? undefined;
   const headerMethod = request.headers.get('Mcp-Method');
-  if (headerMethod !== null && headerMethod !== 'initialize') return;
+  if (headerMethod !== null && headerMethod !== 'initialize' && headerMethod !== 'tools/call') {
+    return;
+  }
 
   try {
     const body: unknown = await request.clone().json();
@@ -267,12 +277,12 @@ async function captureRequestTelemetry(request: Request, telemetry: TelemetryInp
 
     const method = headerMethod ?? (typeof envelope.method === 'string' ? envelope.method : undefined);
     if (method === 'initialize' && params) {
-      const clientInfo = typeof params.clientInfo === 'object' && params.clientInfo !== null
-        ? params.clientInfo as Record<string, unknown>
-        : undefined;
-      if (clientInfo && typeof clientInfo.name === 'string') {
-        telemetry.clientName = clientInfo.name;
-      }
+      telemetry.clientName = clientNameFrom(params.clientInfo);
+    } else if (method === 'tools/call' && params
+      && typeof params._meta === 'object' && params._meta !== null) {
+      telemetry.clientName = clientNameFrom(
+        (params._meta as Record<string, unknown>)[CLIENT_INFO_META_KEY],
+      );
     }
   } catch {
     // Telemetry capture must never affect request handling.

@@ -114,7 +114,9 @@ Production and preview require distinct WMATA API keys, MRTR state keys, origins
 
 **3. Review Logs Regularly**
 
-Metro application telemetry is serialized through `serializeTelemetry` into these allowlisted fields only: `correlationId`, `era`, `protocolVersion`, `mcpMethod`, `mcpName`, `alias`, `upstream`, `durationMs`, and `statusClass`. Invalid or unknown fields are dropped. Metro emits no client identity field; use `statusClass` and the safe request dimensions for application trends, and review rate-limit analytics in Cloudflare.
+Metro application telemetry is serialized through `serializeTelemetry` into these allowlisted fields only: `correlationId`, `era`, `protocolVersion`, `mcpMethod`, `mcpName`, `clientName`, `sessionId`, `alias`, `upstream`, `durationMs`, and `statusClass`. Invalid or unknown fields are dropped. `clientName` is the self-reported MCP client software name (legacy `initialize` `clientInfo`, or the per-request `io.modelcontextprotocol/clientInfo` `_meta` on modern `tools/call`), never a person; `sessionId` is an `Mcp-Session-Id` header only if a client sends one, which this stateless transport never issues. Use `statusClass` and the safe request dimensions for application trends, and review rate-limit analytics in Cloudflare.
+
+`recordMcpUsage` additionally writes one Workers Analytics Engine data point (`ANALYTICS` binding, `mcp_usage` dataset) per `initialize` and `tools/call`, built only from those sanitized fields plus the deployment environment. The write is synchronous, wrapped so it can never throw into the request, and skipped when the binding is absent. Analytics Engine retains data for three months; the public privacy page discloses this store.
 
 Worker log and tail access remain sensitive. Restrict access, limit retention, and redact downstream before exporting or sharing logs.
 

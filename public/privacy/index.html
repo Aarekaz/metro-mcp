@@ -60,8 +60,9 @@
 
       <section aria-labelledby="metro-telemetry">
         <h2 id="metro-telemetry">Metro-owned telemetry is allowlisted</h2>
-        <p>Transit MCP writes allowlisted operational telemetry rather than copying arbitrary request data into its own records. The possible fields are a correlation identifier, protocol era and version, MCP method and tool name, endpoint alias, upstream name, request duration, and response status class.</p>
-        <p>The Metro-owned allowlist has no client identity field. It excludes request bodies, transit input values, raw errors, secrets, and full responses. Invalid and unknown fields are dropped before the record is serialized.</p>
+        <p>Transit MCP writes allowlisted operational telemetry rather than copying arbitrary request data into its own records. The possible fields are a correlation identifier, protocol era and version, MCP method and tool name, endpoint alias, upstream name, request duration, response status class, the name your MCP client software reports about itself (such as the chat app or editor you connect from), and an MCP session header if your client sends one.</p>
+        <p>The client name identifies software, not a person. The allowlist has no field for your name, account, IP address, or conversation, and it excludes request bodies, transit input values, raw errors, secrets, and full responses. Invalid and unknown fields are dropped before the record is serialized.</p>
+        <p>To count usage, Transit MCP also stores one record per connection setup and per tool call in a Cloudflare usage-metrics store: the MCP method, tool name, client software name, deployment environment, response status class, request duration, and any session header. Cloudflare keeps these records for about three months.</p>
       </section>
 
       <section aria-labelledby="request-state">
