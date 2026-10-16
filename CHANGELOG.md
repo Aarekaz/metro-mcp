@@ -5,6 +5,13 @@ All notable changes to Metro MCP will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Rebranded to Transit MCP with `https://transitmcp.com` as the canonical origin. Pages, `/info` links, and the reported MCP server name (`transit-mcp`) now use the new brand.
+- MCP trust checks accept requests on the canonical origin or on any HTTPS, default-port hostname in `MCP_ALLOWED_HOSTNAMES`. Production allowlists `transitmcp.com` and `metro-mcp.anuragd.me`, so `https://metro-mcp.anuragd.me/mcp` keeps working.
+
 ## [6.0.0] - 2026-08-21
 
 ### Breaking

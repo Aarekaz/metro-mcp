@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>metro-mcp docs</title>
-  <meta name="description" content="Connect anonymously to metro-mcp and understand the live DC Metro and NYC Subway data behind each read-only tool.">
+  <title>Transit MCP docs</title>
+  <meta name="description" content="Connect anonymously to Transit MCP and understand the live DC Metro and NYC Subway data behind each read-only tool.">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -483,7 +483,7 @@
   <nav aria-label="Primary">
     <a class="brand" href="/">
       <img class="brand-icon" src="/metro-mcp-slick.svg" alt="" width="24" height="24">
-      <span class="wordmark">metro-mcp</span>
+      <span class="wordmark">transit-mcp</span>
     </a>
     <div class="nav-links">
       <a href="/docs/" aria-current="page">Docs</a>
@@ -501,14 +501,15 @@
     <header class="hero">
       <div>
         <h1>Docs for the <span class="accent">live transit MCP</span>.</h1>
-        <p class="lede">metro-mcp exposes DC Metro and NYC Subway data through MCP tools, resources, and prompts. This page covers client setup, public endpoints, what each tool can answer, and which official transit feeds power the results.</p>
+        <p class="lede">Transit MCP exposes DC Metro and NYC Subway data through MCP tools, resources, and prompts. This page covers client setup, public endpoints, what each tool can answer, and which official transit feeds power the results.</p>
         <div class="hero-actions">
           <a class="primary-action" href="#connect">Connect your client</a>
           <a class="secondary-action" href="#tools">Browse tools</a>
         </div>
       </div>
       <aside class="status-panel" aria-label="Server summary">
-        <div class="status-row"><span><span class="live-dot"></span>Production</span><strong>metro-mcp.anuragd.me</strong></div>
+        <div class="status-row"><span><span class="live-dot"></span>Production</span><strong>transitmcp.com</strong></div>
+        <div class="status-row"><span>Also available at</span><strong>metro-mcp.anuragd.me</strong></div>
         <div class="status-row"><span>Transport</span><strong>Streamable HTTP</strong></div>
         <div class="status-row"><span>Stations</span><strong>598 total</strong></div>
         <div class="status-row"><span>Tools</span><strong>13 MCP tools</strong></div>
@@ -522,6 +523,7 @@
         <a href="#tools">Tools</a>
         <a href="#data">Data sources</a>
         <a href="#resources">Resources and prompts</a>
+        <a href="#pairs-well-with">Pairs well with</a>
         <a href="#architecture">Cloudflare stack</a>
       </aside>
 
@@ -536,8 +538,8 @@
             </div>
             <pre><code>{
   "mcpServers": {
-    "metro-mcp": {
-      "url": "https://metro-mcp.anuragd.me/mcp"
+    "transit-mcp": {
+      "url": "https://transitmcp.com/mcp"
     }
   }
 }</code></pre>
@@ -546,11 +548,11 @@
             <div class="info-card">
               <h3>Codex CLI</h3>
               <p>Add the same anonymous Streamable HTTP endpoint from a terminal.</p>
-              <div class="chip-row"><span class="chip"><code>codex mcp add metro-mcp https://metro-mcp.anuragd.me/mcp</code></span></div>
+              <div class="chip-row"><span class="chip"><code>codex mcp add transit-mcp https://transitmcp.com/mcp</code></span></div>
             </div>
             <div class="info-card">
               <h3>Generic client</h3>
-              <p>Use name <code>metro-mcp</code>, URL <code>https://metro-mcp.anuragd.me/mcp</code>, and transport <code>streamable-http</code>.</p>
+              <p>Use name <code>transit-mcp</code>, URL <code>https://transitmcp.com/mcp</code>, and transport <code>streamable-http</code>.</p>
             </div>
           </div>
         </section>
@@ -600,7 +602,7 @@
 
         <section id="data">
           <h2>Data sources and cache windows</h2>
-          <p class="section-copy">metro-mcp normalizes official agency data into MCP-friendly JSON. DC data is fetched from WMATA REST APIs with Cloudflare edge caching; NYC uses MTA GTFS-realtime feeds plus bundled station and route metadata.</p>
+          <p class="section-copy">Transit MCP normalizes official agency data into MCP-friendly JSON. DC data is fetched from WMATA REST APIs with Cloudflare edge caching; NYC uses MTA GTFS-realtime feeds plus bundled station and route metadata.</p>
           <div class="source-grid">
             <article class="source-card">
               <header>
@@ -664,9 +666,14 @@
           </div>
         </section>
 
+        <section id="pairs-well-with">
+          <h2>Pairs well with</h2>
+          <p class="section-copy">When the commute planner shows delays, your agent can handle the fallout too. <a href="https://call4.me/">call4me</a> is an MCP server that makes real phone calls for you. It can call ahead to tell a restaurant you're running late, reschedule a doctor's appointment, or wait on hold for you. Add it next to Transit MCP in the same client and try something like "trains are delayed, call the restaurant and push my reservation 30 minutes."</p>
+        </section>
+
         <section id="architecture">
           <h2>Cloudflare stack</h2>
-          <p class="section-copy">metro-mcp runs as a small Cloudflare application: the edge handles web pages, anonymous MCP requests, lightweight rate limiting, and logs close to the user.</p>
+          <p class="section-copy">Transit MCP runs as a small Cloudflare application: the edge handles web pages, anonymous MCP requests, lightweight rate limiting, and logs close to the user.</p>
           <div class="grid">
             <div class="info-card">
               <h3>Workers</h3>
