@@ -1,0 +1,87 @@
+/* Theme switch in the nav. Colors come from the host page's tokens. */
+.theme-switch {
+  position: relative;
+  display: inline-flex;
+}
+/* Hidden until theme.js runs; without it the page simply follows the system. */
+:root:not([data-theme-choice]) .theme-switch { display: none; }
+
+.theme-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: var(--ink-2);
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.theme-button:hover,
+.theme-button[aria-expanded="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--border);
+}
+.theme-button svg,
+.theme-menu svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
+}
+.theme-button .theme-icon { display: none; }
+:root[data-theme-choice="system"] .theme-button .theme-icon[data-for="system"],
+:root[data-theme-choice="light"] .theme-button .theme-icon[data-for="light"],
+:root[data-theme-choice="dark"] .theme-button .theme-icon[data-for="dark"] { display: block; }
+
+.theme-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  min-width: 148px;
+  padding: 5px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 16px 40px -12px rgba(10, 37, 64, 0.28), 0 2px 6px rgba(10, 37, 64, 0.06);
+}
+.theme-menu[hidden] { display: none; }
+.theme-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-align: left;
+}
+.theme-menu button:hover,
+.theme-menu button:focus-visible {
+  background: var(--bg);
+  color: var(--ink);
+  outline: none;
+}
+.theme-menu button[aria-checked="true"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.theme-menu button[aria-checked="true"]::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-button { transition: none; }
+}
