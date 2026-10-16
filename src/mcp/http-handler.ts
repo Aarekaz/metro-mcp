@@ -238,6 +238,47 @@ function bridgeResponseCancellation(
   });
 }
 
+/**
+ * Best-effort capture of the request facts the SDK callback cannot see:
+ * the transport session header, the calling client's name (initialize
+ * bodies only), and method/name for legacy requests that carry no
+ * Mcp-Method/Mcp-Name headers. Values land in telemetry and are only
+ * ever emitted through its allowlist sanitizer. Never throws.
+ */
+async function captureRequestTelemetry(request: Request, telemetry: TelemetryInput): Promise<void> {
+  telemetry.sessionId = request.headers.get('Mcp-Session-Id') ?? undefined;
+  const headerMethod = request.headers.get('Mcp-Method');
+  if (headerMethod !== null && headerMethod !== 'initialize') return;
+
+  try {
+    const body: unknown = await request.clone().json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return;
+    const envelope = body as Record<string, unknown>;
+    const params = typeof envelope.params === 'object' && envelope.params !== null
+      ? envelope.params as Record<string, unknown>
+      : undefined;
+
+    if (headerMethod === null && typeof envelope.method === 'string') {
+      telemetry.mcpMethod = envelope.method;
+      if (envelope.method === 'tools/call' && params && typeof params.name === 'string') {
+        telemetry.mcpName = params.name;
+      }
+    }
+
+    const method = headerMethod ?? (typeof envelope.method === 'string' ? envelope.method : undefined);
+    if (method === 'initialize' && params) {
+      const clientInfo = typeof params.clientInfo === 'object' && params.clientInfo !== null
+        ? params.clientInfo as Record<string, unknown>
+        : undefined;
+      if (clientInfo && typeof clientInfo.name === 'string') {
+        telemetry.clientName = clientInfo.name;
+      }
+    }
+  } catch {
+    // Telemetry capture must never affect request handling.
+  }
+}
+
 /** Serve one anonymous stateless MCP request. */
 export async function handleMcpRequest(
   request: Request,
@@ -251,6 +292,10 @@ export async function handleMcpRequest(
   const missingVersion = await missingModernVersionHeaderResponse(bounded);
   if (missingVersion) {
     return missingVersion;
+  }
+
+  if (telemetry) {
+    await captureRequestTelemetry(bounded, telemetry);
   }
 
   const handler = createMcpHandler(

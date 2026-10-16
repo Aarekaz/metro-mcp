@@ -4,6 +4,7 @@ import {
 } from '@modelcontextprotocol/server';
 
 import { loadConfig } from './config';
+import { recordMcpUsage } from './metrics';
 import { addSecurityHeadersAuto } from './middleware/security-headers';
 import { handleMcpRequest } from './mcp/http-handler';
 import { handlePublicRequest } from './public-handler';
@@ -98,6 +99,7 @@ export default {
 
     telemetry.durationMs = Math.max(0, performance.now() - startedAt);
     telemetry.status = response.status;
+    recordMcpUsage(env, telemetry);
     const correlationId = typeof telemetry.correlationId === 'string'
       ? telemetry.correlationId
       : crypto.randomUUID();
