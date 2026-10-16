@@ -273,3 +273,87 @@ describe('public legal and support pages', () => {
     }
   });
 });
+
+const publicPages = [
+  { file: 'public/index.html', url: 'https://transitmcp.com/' },
+  { file: 'public/docs/index.html', url: 'https://transitmcp.com/docs/' },
+  { file: 'public/privacy/index.html', url: 'https://transitmcp.com/privacy/' },
+  { file: 'public/terms/index.html', url: 'https://transitmcp.com/terms/' },
+  { file: 'public/support/index.html', url: 'https://transitmcp.com/support/' },
+] as const;
+
+function metaContent(html: string, attribute: 'name' | 'property', key: string): string | undefined {
+  const pattern = new RegExp(`<meta\\s+${attribute}="${key.replace(/[.:]/g, '\\$&')}"\\s+content="([^"]+)">`, 'i');
+  return html.match(pattern)?.[1];
+}
+
+describe('public page discoverability', () => {
+  it.each(publicPages)('publishes a complete search and social head for $url', ({ file, url }) => {
+    const html = readRequiredProjectFile(file);
+
+    expect(html.match(/<title>[^<]{20,}<\/title>/gi)).toHaveLength(1);
+    expect(metaContent(html, 'name', 'description')?.length).toBeGreaterThan(50);
+    expect(html).toContain(`<link rel="canonical" href="${url}">`);
+    expect(html.match(/<h1\b/gi)).toHaveLength(1);
+    for (const key of ['og:type', 'og:title', 'og:description']) {
+      expect(metaContent(html, 'property', key), key).toBeTruthy();
+    }
+    expect(metaContent(html, 'property', 'og:url')).toBe(url);
+    expect(metaContent(html, 'property', 'og:image')).toBe('https://transitmcp.com/og-image.png');
+    expect(metaContent(html, 'name', 'twitter:card')).toBe('summary_large_image');
+    expect(metaContent(html, 'name', 'twitter:title')).toBeTruthy();
+    expect(metaContent(html, 'name', 'twitter:description')).toBeTruthy();
+    expect(metaContent(html, 'name', 'twitter:image')).toBe('https://transitmcp.com/og-image.png');
+  });
+
+  it('gives every public page a unique title and description', () => {
+    const heads = publicPages.map(({ file }) => readRequiredProjectFile(file));
+    const titles = heads.map(html => html.match(/<title>([^<]+)<\/title>/i)?.[1]);
+    const descriptions = heads.map(html => metaContent(html, 'name', 'description'));
+
+    expect(new Set(titles).size).toBe(publicPages.length);
+    expect(new Set(descriptions).size).toBe(publicPages.length);
+  });
+
+  it('describes the landing and docs pages with parseable structured data', () => {
+    const typesFor = (file: string): string[] =>
+      [...readRequiredProjectFile(file).matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi)]
+        .map(match => (JSON.parse(match[1] ?? '{}') as { '@type'?: string })['@type'] ?? '');
+
+    expect(typesFor('public/index.html')).toEqual(['SoftwareApplication', 'WebSite']);
+    expect(typesFor('public/docs/index.html')).toEqual(['TechArticle']);
+  });
+
+  it('publishes robots.txt, sitemap.xml, and llms.txt for crawlers and agents', () => {
+    const robots = readRequiredProjectFile('public/robots.txt');
+    expect(robots).toMatch(/^User-agent: \*$/m);
+    expect(robots).toMatch(/^Allow: \/$/m);
+    expect(robots).toContain('Sitemap: https://transitmcp.com/sitemap.xml');
+
+    const sitemap = readRequiredProjectFile('public/sitemap.xml');
+    const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
+    expect(locations.sort()).toEqual(publicPages.map(({ url }) => url).sort());
+    expect(sitemap).toMatch(/<loc>https:\/\/transitmcp\.com\/<\/loc>\s*<changefreq>[a-z]+<\/changefreq>\s*<priority>1\.0<\/priority>/);
+
+    const llms = readRequiredProjectFile('public/llms.txt');
+    expect(llms).toMatch(/^# Transit MCP$/m);
+    expect(llms).toContain('https://transitmcp.com/mcp');
+    expect(llms).toContain('https://metro-mcp.anuragd.me/mcp');
+    expect(llms).toContain('https://chatgpt.com/plugins/plugin_asdk_app_6a9078f4d6dc8191be735cc1c2ff45b5');
+    for (const path of ['docs', 'privacy', 'terms', 'support']) {
+      expect(llms).toContain(`https://transitmcp.com/${path}/`);
+    }
+  });
+
+  it('tells readers that Metro MCP was renamed and the legacy endpoint keeps working', () => {
+    for (const file of ['public/docs/index.html', 'README.md']) {
+      const source = readRequiredProjectFile(file);
+      expect(source).toMatch(/Metro MCP is now Transit MCP/);
+      expect(source).toContain('https://metro-mcp.anuragd.me/mcp');
+      expect(source).toMatch(/continue to be supported/);
+    }
+    expect(readRequiredProjectFile('public/index.html')).toMatch(
+      /<footer[\s\S]*Transit MCP was formerly Metro MCP\./,
+    );
+  });
+});

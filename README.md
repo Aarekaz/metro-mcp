@@ -2,6 +2,8 @@
 
 Transit MCP is an anonymous, read-only Model Context Protocol server for live DC Metro and NYC Subway information.
 
+> **Metro MCP is now Transit MCP.** The new home is [transitmcp.com](https://transitmcp.com/) and the docs now live at [transitmcp.com/docs](https://transitmcp.com/docs/). It is the same server with the same docs. The old endpoint `https://metro-mcp.anuragd.me/mcp` and the old site will continue to be supported and keep working.
+
 [![MCP](https://img.shields.io/badge/MCP-2026--07--28-blue)](https://modelcontextprotocol.io)
 [![Transit MCP](https://img.shields.io/badge/Transit_MCP-6.0.0-0f766e)](CHANGELOG.md)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)](https://workers.cloudflare.com)
