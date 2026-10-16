@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transit MCP · Plug your LLM into the subway</title>
-  <meta name="description" content="Anonymous, read-only access to live DC Metro and NYC Subway data for any MCP client.">
+  <title>Transit MCP · Real-time DC Metro and NYC Subway MCP server for Claude and ChatGPT</title>
+  <meta name="description" content="Free, anonymous Model Context Protocol (MCP) server for real-time transit arrivals on DC Metro and NYC Subway. Use it in Claude, Cursor, or as a ChatGPT plugin.">
+  <link rel="canonical" href="https://transitmcp.com/">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
   <!-- Open Graph / Twitter -->
@@ -12,15 +13,70 @@
   <meta property="og:site_name" content="Transit MCP">
   <meta property="og:url" content="https://transitmcp.com/">
   <meta property="og:title" content="Transit MCP · Plug your LLM into the subway">
-  <meta property="og:description" content="Anonymous, read-only access to live DC Metro and NYC Subway data via the Model Context Protocol.">
+  <meta property="og:description" content="Free, anonymous Model Context Protocol (MCP) server for real-time transit arrivals on DC Metro and NYC Subway. Use it in Claude, Cursor, or as a ChatGPT plugin.">
   <meta property="og:image" content="https://transitmcp.com/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://transitmcp.com/">
-  <meta property="twitter:title" content="Transit MCP · Plug your LLM into the subway">
-  <meta property="twitter:description" content="Anonymous, read-only access to live DC Metro and NYC Subway data via the Model Context Protocol.">
-  <meta property="twitter:image" content="https://transitmcp.com/og-image.png">
+  <meta property="og:image:alt" content="Transit MCP: live DC Metro and NYC Subway data through MCP">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Transit MCP · Plug your LLM into the subway">
+  <meta name="twitter:description" content="Free, anonymous Model Context Protocol (MCP) server for real-time transit arrivals on DC Metro and NYC Subway. Use it in Claude, Cursor, or as a ChatGPT plugin.">
+  <meta name="twitter:image" content="https://transitmcp.com/og-image.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "@id": "https://transitmcp.com/#software",
+    "name": "Transit MCP",
+    "alternateName": "Metro MCP",
+    "url": "https://transitmcp.com/",
+    "description": "Anonymous, read-only Model Context Protocol (MCP) server for real-time DC Metro and NYC Subway arrivals, incidents, stations, and routes. Works with Claude, Cursor, Codex, and other MCP clients, and is available as a ChatGPT plugin.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any",
+    "image": "https://transitmcp.com/og-image.png",
+    "installUrl": "https://chatgpt.com/plugins/plugin_asdk_app_6a9078f4d6dc8191be735cc1c2ff45b5",
+    "isAccessibleForFree": true,
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Real-time DC Metro and NYC Subway arrivals",
+      "Service incidents and elevator outages",
+      "Station search and route detail",
+      "Anonymous access with no login, token, or OAuth flow",
+      "Available as a ChatGPT plugin"
+    ],
+    "author": {
+      "@type": "Person",
+      "name": "Anurag Dhungana",
+      "url": "https://www.anuragd.me"
+    },
+    "license": "https://github.com/Aarekaz/metro-mcp/blob/main/LICENSE",
+    "sameAs": [
+      "https://github.com/Aarekaz/metro-mcp",
+      "https://chatgpt.com/plugins/plugin_asdk_app_6a9078f4d6dc8191be735cc1c2ff45b5"
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://transitmcp.com/#website",
+    "name": "Transit MCP",
+    "alternateName": "Metro MCP",
+    "url": "https://transitmcp.com/",
+    "description": "Docs and connection details for Transit MCP, a free MCP server for real-time DC Metro and NYC Subway data.",
+    "inLanguage": "en",
+    "publisher": {
+      "@type": "Person",
+      "name": "Anurag Dhungana",
+      "url": "https://www.anuragd.me"
+    }
+  }
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -588,6 +644,8 @@
       color: var(--ink-2);
       white-space: nowrap;
     }
+    a.compat-item { text-decoration: none; }
+    a.compat-item:hover { color: var(--ink); }
     .compat-logo {
       width: 14px;
       height: 14px;
@@ -670,6 +728,12 @@
       align-items: center;
       gap: 12px;
       margin-top: 6px;
+    }
+    .hero-tip {
+      margin: 0;
+      font-size: 14px;
+      color: var(--ink-3);
+      text-align: center;
     }
     .cta-row {
       display: flex;
@@ -1069,7 +1133,7 @@
   <nav aria-label="Primary">
     <a class="brand" href="/">
       <img class="brand-icon" src="/metro-mcp-slick.svg" alt="" width="24" height="24">
-      <span class="wordmark">transit<span class="wordmark-dim">-mcp</span></span>
+      <span class="wordmark">Transit MCP</span>
     </a>
     <div class="nav-links">
       <a href="/docs/">Docs</a>
@@ -1106,14 +1170,16 @@
             <span>Also available as a <strong>ChatGPT plugin</strong></span>
             <span class="plugin-arrow" aria-hidden="true">&nearr;</span>
           </a>
+          <p class="hero-tip">Or just send this link to your AI. It will figure it out.</p>
         </div>
         <p class="footnote rise" style="--i:4">
           <span>Works with any MCP-compatible LLM/client</span>
           <span class="compat-examples" aria-label="Example clients">
-            <span class="compat-item"><img class="compat-logo" src="/client-claude.svg" alt="" width="14" height="14">Claude</span>
-            <span class="compat-item"><img class="compat-logo" src="/client-cursor.svg" alt="" width="14" height="14">Cursor</span>
-            <span class="compat-item"><img class="compat-logo" src="/client-openai.svg" alt="" width="14" height="14">Codex</span>
-            <span class="compat-item"><img class="compat-logo" src="/client-gemini.svg" alt="" width="14" height="14">Gemini</span>
+            <a class="compat-item" href="https://claude.com" target="_blank" rel="noreferrer"><img class="compat-logo" src="/client-claude.svg" alt="" width="14" height="14">Claude</a>
+            <a class="compat-item" href="https://grok.com" target="_blank" rel="noreferrer"><img class="compat-logo" src="/client-grok.svg" alt="" width="14" height="14">Grok Bot</a>
+            <a class="compat-item" href="https://instinct.com" target="_blank" rel="noreferrer">Instinct</a>
+            <a class="compat-item" href="https://orchid.ai/" target="_blank" rel="noreferrer">Orchid</a>
+            <a class="compat-item" href="https://muse.ai" target="_blank" rel="noreferrer">Muse</a>
           </span>
         </p>
         <div class="infra-strip rise" style="--i:5" aria-label="Built on Cloudflare and official transit feeds">
@@ -1150,7 +1216,7 @@
         <div class="chat-panel">
           <div class="chat-head">
             <span class="dot-live"></span>
-            <span class="chat-title">transit-mcp</span>
+            <span class="chat-title">Transit MCP</span>
             <span class="chat-meta">&middot; connected to your LLM</span>
             <span class="chat-spacer"></span>
             <button type="button" class="chat-replay" data-replay aria-label="Replay current demo">&#8635;</button>
@@ -1175,6 +1241,8 @@
         </a>
         <span class="dot-sep">·</span>
         <span>MIT</span>
+        <span class="dot-sep">·</span>
+        <span>Transit MCP was formerly Metro MCP.</span>
         <span class="dot-sep">·</span>
         <span class="footer-legal">
           <a href="/privacy/">Privacy</a>
@@ -1482,7 +1550,7 @@
         wrap.innerHTML =
           '<span class="avatar assistant">T</span>' +
           '<div class="content">' +
-            '<div class="role">Your LLM &middot; using transit-mcp</div>' +
+            '<div class="role">Your LLM &middot; using Transit MCP</div>' +
             '<div class="tool-card">' +
               '<div class="tool-head">' +
                 '<span class="arrow">&rarr;</span>' +
