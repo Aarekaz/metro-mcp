@@ -30,9 +30,9 @@
   ],
 
   "vars": {
-    "MCP_PUBLIC_ORIGIN": "https://metro-mcp.anuragd.me",
-    "MCP_ALLOWED_HOSTNAMES": "metro-mcp.anuragd.me",
-    "MCP_ALLOWED_ORIGIN_HOSTNAMES": "metro-mcp.anuragd.me",
+    "MCP_PUBLIC_ORIGIN": "https://transitmcp.com",
+    "MCP_ALLOWED_HOSTNAMES": "transitmcp.com,metro-mcp.anuragd.me",
+    "MCP_ALLOWED_ORIGIN_HOSTNAMES": "transitmcp.com,metro-mcp.anuragd.me",
     "ENVIRONMENT": "production"
   },
 
@@ -93,6 +93,10 @@
   "routes": [
     {
       "pattern": "metro-mcp.anuragd.me",
+      "custom_domain": true
+    },
+    {
+      "pattern": "transitmcp.com",
       "custom_domain": true
     }
   ]
