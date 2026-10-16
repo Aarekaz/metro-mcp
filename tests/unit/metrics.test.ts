@@ -58,6 +58,27 @@ describe('recordMcpUsage', () => {
     )).not.toThrow();
   });
 
+  it('keeps the index within the 96-byte Analytics Engine limit', () => {
+    const writeDataPoint = vi.fn();
+    const env = envWithDataset(writeDataPoint);
+    recordMcpUsage(env, { mcpMethod: 'tools/call', sessionId: 'a'.repeat(96), status: 200 });
+    recordMcpUsage(env, { mcpMethod: 'tools/call', sessionId: 'a'.repeat(97), status: 200 });
+    expect(writeDataPoint.mock.calls.map(([point]) => point.indexes)).toEqual([
+      ['a'.repeat(96)],
+      [''],
+    ]);
+  });
+
+  it('never throws even when reading the binding fails', () => {
+    const env = { ENVIRONMENT: 'production' } as unknown as Env;
+    Object.defineProperty(env, 'ANALYTICS', {
+      get() {
+        throw new Error('binding unavailable');
+      },
+    });
+    expect(() => recordMcpUsage(env, { mcpMethod: 'tools/call', status: 200 })).not.toThrow();
+  });
+
   it('drops unsafe session ids and never throws when the dataset fails', () => {
     const failing = vi.fn(() => {
       throw new Error('boom');

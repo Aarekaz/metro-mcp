@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { SERVER_VERSION } from '../../src/config';
+import { SERVER_IDENTITY } from '../../src/mcp/server';
 import { getServerInfo } from '../../src/server-info';
 
 const packageJson = JSON.parse(
@@ -7,6 +9,9 @@ const packageJson = JSON.parse(
 );
 const exampleClientConfig = JSON.parse(
   readFileSync(new URL('../../mcp-config.json', import.meta.url).pathname, 'utf8'),
+);
+const registryServer = JSON.parse(
+  readFileSync(new URL('../../server.json', import.meta.url).pathname, 'utf8'),
 );
 
 describe('getServerInfo', () => {
@@ -45,6 +50,22 @@ describe('getServerInfo', () => {
       type: 'http',
       url: 'https://transitmcp.com/mcp',
     });
+  });
+
+  it('keeps the MCP Registry server.json aligned with the served identity', () => {
+    expect(registryServer.$schema).toBe(
+      'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json',
+    );
+    expect(registryServer.name).toMatch(/^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/);
+    expect(registryServer.description.length).toBeLessThanOrEqual(100);
+    expect(registryServer.version).toBe(SERVER_VERSION);
+    expect(registryServer.version).toBe(packageJson.version);
+    expect(registryServer.title).toBe(SERVER_IDENTITY.title);
+    expect(registryServer.websiteUrl).toBe(SERVER_IDENTITY.websiteUrl);
+    expect(registryServer.icons).toEqual(SERVER_IDENTITY.icons);
+    expect(registryServer.remotes).toEqual([
+      { type: 'streamable-http', url: exampleClientConfig.mcpServers['transit-mcp'].url },
+    ]);
   });
 
   it('publishes canonical anonymous connection and legal links', () => {

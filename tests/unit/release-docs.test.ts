@@ -77,7 +77,7 @@ describe('release operator documentation', () => {
 
     const telemetryFields = [
       'correlationId', 'era', 'protocolVersion', 'mcpMethod', 'mcpName',
-      'alias', 'upstream', 'durationMs', 'statusClass',
+      'clientName', 'sessionId', 'alias', 'upstream', 'durationMs', 'statusClass',
     ];
     for (const field of telemetryFields) expect(securityGuide).toContain(`\`${field}\``);
     expect(securityGuide).not.toMatch(/clientId|authentication detail/i);

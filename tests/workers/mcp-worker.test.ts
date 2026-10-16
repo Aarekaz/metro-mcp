@@ -15,6 +15,7 @@ import {
 import {
   EXPECTED_PROMPT_NAMES,
   EXPECTED_RESOURCE_NAMES,
+  EXPECTED_SERVER_INFO,
   EXPECTED_TOOL_NAMES,
   TRANSIT_BOARD_MIME,
   TRANSIT_BOARD_RESOURCE_CONTRACT,
@@ -238,10 +239,7 @@ describe('assembled MCP Worker', () => {
       ttlMs: 86_400_000,
       cacheScope: 'public',
       _meta: {
-        'io.modelcontextprotocol/serverInfo': {
-          name: 'transit-mcp',
-          version: '6.0.0',
-        },
+        'io.modelcontextprotocol/serverInfo': EXPECTED_SERVER_INFO,
       },
       contents: [{
         uri: TRANSIT_BOARD_URI,
@@ -369,10 +367,7 @@ describe('assembled MCP Worker', () => {
       structuredContent,
       content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
       _meta: {
-        'io.modelcontextprotocol/serverInfo': {
-          name: 'transit-mcp',
-          version: '6.0.0',
-        },
+        'io.modelcontextprotocol/serverInfo': EXPECTED_SERVER_INFO,
       },
     });
   });

@@ -126,6 +126,9 @@ describe('public legal and support pages', () => {
     expect(html).toMatch(/client-held[^.]*signed[^.]*state[^.]*five minutes/i);
     expect(html).toMatch(/public station-selection fields/i);
     expect(html).toMatch(/Transit MCP[^.]*allowlisted operational telemetry/i);
+    expect(html).toMatch(/client software reports about itself/i);
+    expect(html).toMatch(/usage-metrics store[^.]*client software name/i);
+    expect(html).toMatch(/keeps these records for about three months/i);
     expect(html).toMatch(/Cloudflare[^.]*logs?[^.]*may/i);
     expect(html).toMatch(/WMATA[^.]*MTA[^.]*may[^.]*logs?/i);
     expect(html).toMatch(/outside Transit MCP(?:'s|&rsquo;s) direct control/i);
