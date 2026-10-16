@@ -87,7 +87,7 @@ describe('public legal and support pages', () => {
     expect(html).toMatch(new RegExp(`<title>[^<]*${title.source}[^<]*<\\/title>`, 'i'));
     expect(html).toMatch(/<meta\s+name="description"\s+content="[^"]+">/i);
     expect(html).toContain(
-      `<link rel="canonical" href="https://metro-mcp.anuragd.me/${slug}/">`,
+      `<link rel="canonical" href="https://transitmcp.com/${slug}/">`,
     );
     expect(html).toContain('<link rel="stylesheet" href="/legal.css">');
     expect(html).toMatch(/<header\b/i);
@@ -99,7 +99,7 @@ describe('public legal and support pages', () => {
       `<time datetime="${lastUpdated.datetime}">${lastUpdated.text}</time>`,
     );
     expect(html).toMatch(/class="skip-link"[^>]*href="#main-content"/i);
-    expect(html).toMatch(/href="\/"[^>]*>\s*Metro MCP\s*</i);
+    expect(html).toMatch(/href="\/"[^>]*>\s*Transit MCP\s*</i);
   });
 
   it('publishes the complete anonymous privacy disclosure inventory', () => {
@@ -125,10 +125,10 @@ describe('public legal and support pages', () => {
     expect(html).toMatch(/does not forward[^.]*IP address[^.]*conversation/i);
     expect(html).toMatch(/client-held[^.]*signed[^.]*state[^.]*five minutes/i);
     expect(html).toMatch(/public station-selection fields/i);
-    expect(html).toMatch(/Metro MCP[^.]*allowlisted operational telemetry/i);
+    expect(html).toMatch(/Transit MCP[^.]*allowlisted operational telemetry/i);
     expect(html).toMatch(/Cloudflare[^.]*logs?[^.]*may/i);
     expect(html).toMatch(/WMATA[^.]*MTA[^.]*may[^.]*logs?/i);
-    expect(html).toMatch(/outside Metro MCP(?:'s|&rsquo;s) direct control/i);
+    expect(html).toMatch(/outside Transit MCP(?:'s|&rsquo;s) direct control/i);
     expect(html).toMatch(/does not sell/i);
     expect(html).toMatch(/no advertising/i);
     expect(html).toMatch(/not used[^.]*model training/i);

@@ -22,7 +22,13 @@ function mcpTrustRejection(
   allowedHostnames: string[],
   allowedOriginHostnames?: string[],
 ): Response | undefined {
-  if (new URL(request.url).origin !== publicOrigin) {
+  // The canonical origin (including loopback development) is always trusted;
+  // any other custom domain must be HTTPS on the default port and allowlisted.
+  const url = new URL(request.url);
+  const isAllowedCustomDomain = url.protocol === 'https:'
+    && url.port === ''
+    && allowedHostnames.includes(url.hostname.toLowerCase());
+  if (url.origin !== publicOrigin && !isAllowedCustomDomain) {
     return Response.json(
       {
         jsonrpc: '2.0',

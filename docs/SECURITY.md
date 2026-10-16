@@ -1,6 +1,6 @@
 # Security Architecture
 
-Metro MCP 6.0 is an anonymous, read-only service at `https://metro-mcp.anuragd.me/mcp`. No login is required. No client credentials, bearer token, or OAuth flow is required, and Metro MCP does not collect client credentials. Stale `Authorization` headers are ignored before the request reaches the MCP handler.
+Transit MCP 6.0 is an anonymous, read-only service at `https://transitmcp.com/mcp`. The previous `https://metro-mcp.anuragd.me/mcp` endpoint remains an allowlisted alias of the same Worker. No login is required. No client credentials, bearer token, or OAuth flow is required, and Transit MCP does not collect client credentials. Stale `Authorization` headers are ignored before the request reaches the MCP handler.
 
 ## Public request and rate-limit boundaries
 
@@ -12,7 +12,7 @@ Any client can call the public endpoint; there is no caller identity. Cloudflare
 
 ### Host, Origin, and transport
 
-The Worker derives trust from configured `MCP_PUBLIC_ORIGIN` and hostname allowlists, never from an incoming Host header. Undeclared or malformed Host and browser Origin values return `403`; origin-less desktop/server clients remain valid. Exact `POST`/`OPTIONS /sse` requests are rewritten to `/mcp`. `GET` and `DELETE`, slash variants, and legacy session-message URLs return `405`.
+The Worker derives trust from configured `MCP_PUBLIC_ORIGIN` and hostname allowlists, never from an incoming Host header. MCP requests must arrive at the canonical origin or at an HTTPS default-port URL whose hostname is in `MCP_ALLOWED_HOSTNAMES`. Undeclared or malformed Host and browser Origin values return `403`; origin-less desktop/server clients remain valid. Exact `POST`/`OPTIONS /sse` requests are rewritten to `/mcp`. `GET` and `DELETE`, slash variants, and legacy session-message URLs return `405`.
 
 MCP 2026 clients send request metadata on every operation without an initialization handshake. Header/body version, method, and name mismatches are rejected. The server is stateless and does not advertise protocol sessions, resumability, or server push.
 

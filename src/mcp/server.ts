@@ -56,7 +56,7 @@ function buildMetroMcpServer(context: MetroMcpContext): {
   });
 
   const server = new McpServer(
-    { name: 'metro-mcp', version: SERVER_VERSION },
+    { name: 'transit-mcp', version: SERVER_VERSION },
     {
       capabilities: {
         extensions: {

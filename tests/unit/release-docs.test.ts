@@ -24,16 +24,17 @@ const packageJson = JSON.parse(readProjectFile('package.json')) as {
 const workflow = readOptionalProjectFile('.github/workflows/type-check.yml');
 
 describe('release operator documentation', () => {
-  it('documents Metro MCP 6.0 as anonymous with no credential setup', () => {
-    for (const [name, document] of [
-      ['README', readme],
-      ['security guide', securityGuide],
-      ['protocol verification', protocolVerification],
-      ['Apps verification', appsVerification],
-      ['landing page', landingPage],
-      ['public docs', publicDocs],
+  it('documents Transit MCP 6.0 as anonymous with no credential setup', () => {
+    for (const [name, document, endpoint] of [
+      ['README', readme, 'https://transitmcp.com/mcp'],
+      ['security guide', securityGuide, 'https://transitmcp.com/mcp'],
+      // Verification records capture evidence gathered against the original domain.
+      ['protocol verification', protocolVerification, 'https://metro-mcp.anuragd.me/mcp'],
+      ['Apps verification', appsVerification, 'https://metro-mcp.anuragd.me/mcp'],
+      ['landing page', landingPage, 'https://transitmcp.com/mcp'],
+      ['public docs', publicDocs, 'https://transitmcp.com/mcp'],
     ] as const) {
-      expect(document, name).toContain('https://metro-mcp.anuragd.me/mcp');
+      expect(document, name).toContain(endpoint);
       expect(document, name).toMatch(/(?:no login is required|requires no login)/i);
       expect(document, name).toMatch(/no [^.\n]*OAuth flow is required/i);
       expect(document, name).not.toMatch(/GitHub OAuth App|MCP_CONFORMANCE_TOKEN|conformance-auth-proxy/i);

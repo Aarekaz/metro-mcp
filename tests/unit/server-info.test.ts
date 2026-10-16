@@ -41,23 +41,24 @@ describe('getServerInfo', () => {
 
   it('keeps release and client configuration metadata aligned', () => {
     expect(packageJson.version).toBe('6.0.0');
-    expect(exampleClientConfig.mcpServers['metro-mcp']).toEqual({
+    expect(exampleClientConfig.mcpServers['transit-mcp']).toEqual({
       type: 'http',
-      url: 'https://metro-mcp.anuragd.me/mcp',
+      url: 'https://transitmcp.com/mcp',
     });
   });
 
   it('publishes canonical anonymous connection and legal links', () => {
-    const body = getServerInfo('https://metro-mcp.anuragd.me', '2026-08-21T12:00:00.000Z');
+    const body = getServerInfo('https://transitmcp.com', '2026-08-21T12:00:00.000Z');
 
+    expect(body.name).toBe('Transit MCP');
     expect(body.links).toMatchObject({
       github: 'https://github.com/Aarekaz/metro-mcp',
-      mcpServer: 'https://metro-mcp.anuragd.me/mcp',
-      mcpServerLegacy: 'https://metro-mcp.anuragd.me/sse',
-      documentation: 'https://metro-mcp.anuragd.me/docs/',
-      privacy: 'https://metro-mcp.anuragd.me/privacy/',
-      terms: 'https://metro-mcp.anuragd.me/terms/',
-      support: 'https://metro-mcp.anuragd.me/support/',
+      mcpServer: 'https://transitmcp.com/mcp',
+      mcpServerLegacy: 'https://transitmcp.com/sse',
+      documentation: 'https://transitmcp.com/docs/',
+      privacy: 'https://transitmcp.com/privacy/',
+      terms: 'https://transitmcp.com/terms/',
+      support: 'https://transitmcp.com/support/',
     });
   });
 
